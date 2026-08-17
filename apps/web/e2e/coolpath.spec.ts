@@ -6,26 +6,72 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("protects the public list during layout drift and recovers after review", async ({ page }) => {
-  await expect(page.getByText("Reported by the official source").first()).toBeVisible();
+  await expect(page.getByText("Verified public source").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Harbour Library" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Source health" }).click();
+  await page.getByRole("link", { name: "Technical view" }).click();
   await page.getByRole("button", { name: /Simulate drift/ }).click();
   await expect(page.getByText("Temporarily unverifiable")).toBeVisible();
-  await page.getByRole("button", { name: "Public directory" }).click();
-  await expect(page.getByRole("heading", { name: "Harbour Library" })).toBeVisible();
+  await expect(
+    page.getByLabel("Quarantine branch").getByText("Candidate quarantined")
+  ).toBeVisible();
 
-  await page.getByRole("button", { name: "Source health" }).click();
+  await page.getByRole("link", { name: "Public directory" }).click();
+  await expect(page.getByRole("heading", { name: "Harbour Library" })).toBeVisible();
+  await expect(page.getByText("Last trusted report").first()).toBeVisible();
+
+  await page.getByRole("link", { name: "Technical view" }).click();
   await page.getByRole("button", { name: /Prepare repair/ }).click();
   await expect(page.getByText("Repair needs manual approval")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Repair only the failed fields." })).toBeVisible();
+
   await page.getByRole("button", { name: /Approve and re-run/ }).click();
   await expect(page.getByText("Source recovered and re-verified")).toBeVisible();
+  await expect(page.getByLabel("Quarantine branch").getByText("Quarantine clear")).toBeVisible();
 });
 
-test("opens evidence without rendering hostile HTML", async ({ page }) => {
-  await page.getByRole("button", { name: "Evidence" }).first().click();
-  await expect(page.getByRole("dialog", { name: "Harbour Library" })).toBeVisible();
+test("evidence drawer traps focus, escapes safely and restores the trigger", async ({ page }) => {
+  const evidenceButton = page.getByRole("button", {
+    name: "View evidence for Harbour Library"
+  });
+  await evidenceButton.focus();
+  await evidenceButton.click();
+
+  const dialog = page.getByRole("dialog", { name: "Harbour Library" });
+  await expect(dialog).toBeVisible();
   await expect(page.getByText("Wheelchair accessible entrance").first()).toBeVisible();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog).toContainText("Evidence ledger");
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(dialog).toBeHidden();
+  await expect(evidenceButton).toBeFocused();
+});
+
+test("main views are URL-backed and browser history restores the public view", async ({ page }) => {
+  await page.getByRole("link", { name: "Technical view" }).click();
+  await expect(page).toHaveURL(/\?view=technical$/);
+  await expect(page.getByRole("link", { name: "Technical view" })).toHaveAttribute(
+    "aria-current",
+    "page"
+  );
+
+  await page.goBack();
+  await expect(page).not.toHaveURL(/view=technical/);
+  await expect(page.getByRole("link", { name: "Public directory" })).toHaveAttribute(
+    "aria-current",
+    "page"
+  );
+  await expect(page.getByRole("heading", { name: "Location records" })).toBeVisible();
+});
+
+test("the first verified location appears within the initial mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+
+  const firstLocation = page.getByRole("heading", { name: "Harbour Library" });
+  await expect(firstLocation).toBeVisible();
+  const bounds = await firstLocation.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect((bounds?.y ?? 9999) + (bounds?.height ?? 0)).toBeLessThan(812);
 });
