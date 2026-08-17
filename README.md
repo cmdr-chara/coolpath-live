@@ -4,7 +4,7 @@
 
 CoolPath Live is an evidence-first directory of publicly reported cooling centres and heat-relief locations. It was built for the WeMakeDevs x Bright Data [Into the Scrape-Verse](https://www.wemakedevs.org/hackathons/scrape-verse) hackathon.
 
-Municipal pages change without warning. An HTTP 200 response can still contain zero facilities, malformed fields or stale operational copy. CoolPath puts Bright Data Scraper Studio on the critical path, validates every collection against a typed contract and publishes only a trusted snapshot.
+Public source pages change without warning. An HTTP 200 response can still contain zero facilities, malformed fields or stale operational copy. CoolPath puts Bright Data Scraper Studio on the critical path, validates every collection against a typed contract and publishes only a trusted snapshot.
 
 CoolPath is not emergency or medical guidance. It does not claim that a location is safe, nearest, open now, currently available, suitable for a medical condition or reachable by a safe route.
 
@@ -16,7 +16,7 @@ CoolPath is not emergency or medical guidance. It does not claim that a location
 - Fastify API exposing only published snapshots, with ETags, security headers, source allowlists and sanitized errors.
 - Real Bright Data Scraper Studio API client plus a deterministic mock client. Mock mode is always labelled.
 - Manual self-healing review: detect drift, quarantine output, protect the baseline, prepare a field-specific prompt, display the selector diff, approve, re-run the same collector and validate before publishing.
-- Responsive React interface with public and source-health views, full loading/error/empty states, keyboard-visible focus and evidence drawers.
+- Responsive React civic-evidence interface with public and technical views, URL-backed navigation, source-state rendering, keyboard-visible focus and evidence drawers.
 - Unit, integration and Playwright coverage with no live network calls in CI.
 - A separate low-rate Pennsylvania 211 live smoke command for manually configured Bright Data credentials.
 
@@ -48,7 +48,7 @@ The newest candidate is never a public read. Public endpoints follow the source'
 
 ## Source acceptance
 
-Three municipal sources and one nonprofit source were reviewed on 2026-08-17 before adapter work:
+Five public sources — three municipal sources and two nonprofit sources — were reviewed on 2026-08-17 before adapter work:
 
 1. [Pennsylvania 211](https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10) - primary configurable source.
 2. [Arizona Faith Network](https://www.arizonafaithnetwork.org/heatrelief) - read-only candidate; blocked by Bright Data compliance during collector generation.
@@ -149,7 +149,7 @@ Pull-request tests use sanitized deterministic fixtures and do not perform live 
 
 CoolPath stores public facility information only. It has no accounts, geolocation, stored client IPs, analytics, notifications, crowdsourced reports or user-submitted URLs. It deliberately excludes staff names, phone numbers and email addresses. Scraped content is untrusted data and is never rendered as HTML or sent to an external model without explicit configuration.
 
-Source data remains attributed to the issuing public authority. Source terms and robots notes must be rechecked when `sourcePolicyVersion` changes.
+Source data remains attributed to its published source. Source terms and robots notes must be rechecked when `sourcePolicyVersion` changes.
 
 ## Repository map
 
@@ -160,7 +160,7 @@ packages/domain          Canonical schemas, quality gates and state machine
 packages/source-adapters Bright Data clients, normalizers and source manifest
 packages/db              Drizzle schema, migrations and snapshot repository
 packages/test-fixtures   Deterministic layout v1/v2 and golden records
-docs                     Architecture, source policy and demo script
+docs                     Architecture, source policy, frontend direction and demo script
 ```
 
 MIT licensed. See [LICENSE](LICENSE).

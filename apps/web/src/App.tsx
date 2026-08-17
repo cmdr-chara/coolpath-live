@@ -1,78 +1,113 @@
-import {
-  ArrowClockwise,
-  ArrowSquareOut,
-  Check,
-  Heartbeat,
-  ShieldCheck,
-  Wrench
-} from "@phosphor-icons/react";
-import { useGSAP } from "@gsap/react";
+import { ArrowSquareOut, Heartbeat } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import gsap from "gsap";
-import { useCallback, useRef, useState } from "react";
-import { decideHeal, getCity, getIncident, runDemoAction } from "./api";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
+import { decideHeal, getDirectory, getIncident, runDemoAction } from "./api";
+import { AppHeader, type AppView } from "./components/AppHeader";
+import { DirectoryView } from "./components/DirectoryView";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
-import { SignalField } from "./components/SignalField";
-import { SiteList } from "./components/SiteList";
-import { StatusBanner } from "./components/StatusBanner";
+import { PresenterControls, type DemoAction } from "./components/PresenterControls";
 import { TechnicalView } from "./components/TechnicalView";
 import type { CoolingSite } from "./types";
 
-gsap.registerPlugin(useGSAP);
+const pendingMessages: Record<DemoAction, string> = {
+  reset: "Resetting the source and publishing the healthy baseline…",
+  drift: "Running the drifted collector and validating its candidate…",
+  heal: "Preparing the field-specific repair preview…",
+  approve: "Applying the approved selectors, re-running and validating the collector…"
+};
+
+const successMessages: Record<DemoAction, string> = {
+  reset: "Healthy baseline published. The public snapshot passed the complete contract.",
+  drift: "Drift detected. The candidate is quarantined and the last trusted report remains public.",
+  heal: "Repair preview prepared. Manual approval is required before any selector change is used.",
+  approve: "Repair approved. The re-run passed validation and the recovered snapshot was published."
+};
+
+function readView(): AppView {
+  return new URLSearchParams(window.location.search).get("view") === "technical"
+    ? "technical"
+    : "public";
+}
 
 export default function App() {
-  const [view, setView] = useState<"public" | "technical">("public");
+  const [view, setView] = useState<AppView>(readView);
   const [evidenceSite, setEvidenceSite] = useState<CoolingSite | null>(null);
-  const shell = useRef<HTMLDivElement>(null);
+  const [returnFocusTo, setReturnFocusTo] = useState<HTMLButtonElement | null>(null);
+  const [actionFeedback, setActionFeedback] = useState(
+    "Choose a stage to demonstrate the protected publication boundary."
+  );
   const queryClient = useQueryClient();
-  const cityQuery = useQuery({ queryKey: ["city"], queryFn: getCity });
+
+  const cityQuery = useQuery({ queryKey: ["directory"], queryFn: getDirectory });
   const incidentQuery = useQuery({
     queryKey: ["incident", cityQuery.data?.source.id],
     queryFn: () => getIncident(cityQuery.data?.source.id ?? ""),
     enabled: Boolean(cityQuery.data?.source.id)
   });
+
   const refresh = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["city"] }),
+      queryClient.invalidateQueries({ queryKey: ["directory"] }),
       queryClient.invalidateQueries({ queryKey: ["incident"] })
     ]);
   }, [queryClient]);
+
   const action = useMutation({
-    mutationFn: async (next: "reset" | "drift" | "heal" | "approve") => {
+    mutationFn: async (next: DemoAction) => {
       if (next === "approve") return decideHeal(true);
       return runDemoAction(next);
     },
-    onSuccess: refresh
+    onMutate: (next) => {
+      setActionFeedback(pendingMessages[next]);
+    },
+    onSuccess: async (_result, next) => {
+      await refresh();
+      setActionFeedback(successMessages[next]);
+    },
+    onError: () => {
+      setActionFeedback(
+        "The selected demo action failed. The existing public snapshot was not replaced."
+      );
+    }
   });
 
-  useGSAP(
-    () => {
-      if (!shell.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const revealTargets = shell.current.querySelectorAll("[data-reveal]");
-      const signalTargets = shell.current.querySelectorAll(".signal-field__trace");
-      gsap.fromTo(
-        revealTargets,
-        { autoAlpha: 0, y: 20 },
-        { autoAlpha: 1, y: 0, duration: 0.65, stagger: 0.07, ease: "power3.out" }
-      );
-      gsap.fromTo(
-        signalTargets,
-        { strokeDashoffset: 180 },
-        { strokeDashoffset: 0, duration: 1.25, ease: "power2.out", stagger: 0.08 }
-      );
-    },
-    { dependencies: [view, cityQuery.data?.source.status], revertOnUpdate: true }
-  );
+  useEffect(() => {
+    const handlePopState = () => setView(readView());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const navigate = useCallback((next: AppView, event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const url = new URL(window.location.href);
+    if (next === "technical") url.searchParams.set("view", "technical");
+    else url.searchParams.delete("view");
+    window.history.pushState({}, "", url);
+    setView(next);
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  }, []);
 
   if (cityQuery.isLoading) return <LoadingScreen />;
   if (cityQuery.isError || !cityQuery.data) {
     return (
-      <main className="app-shell app-shell--centered">
+      <main className="page-width centered-state">
         <section className="error-state" role="alert">
-          <Heartbeat size={36} weight="duotone" aria-hidden="true" />
+          <Heartbeat size={38} weight="duotone" aria-hidden="true" />
           <h1>CoolPath could not load</h1>
-          <p>Start the API and try again. No unverified data has been shown.</p>
-          <button className="button" onClick={() => void cityQuery.refetch()}>
+          <p>No unverified data has been shown. Confirm the API is running, then try again.</p>
+          <button className="primary-action" onClick={() => void cityQuery.refetch()}>
             Try again
           </button>
         </section>
@@ -81,204 +116,81 @@ export default function App() {
   }
 
   const city = cityQuery.data;
-  const lastVerified = city.snapshot?.observedAt
-    ? new Intl.DateTimeFormat("en", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: city.city.timezone
-      }).format(new Date(city.snapshot.observedAt)) + ` (${city.city.timezone})`
-    : "Not yet verified";
-  const isTrusted = city.source.status === "HEALTHY" || city.source.status === "RECOVERED";
 
   return (
-    <div
-      className={`site-frame site-frame--${view} site-frame--${city.source.status.toLowerCase()}`}
-      ref={shell}
-    >
+    <div className={`site-frame site-frame--${view}`}>
       <a className="skip-link" href="#main">
-        Skip to cooling information
+        Skip to main content
       </a>
-      <div className="grain" aria-hidden="true" />
-      <header className="topbar app-shell">
-        <a className="brand" href="#main" aria-label="CoolPath Live home">
-          <span className="brand-mark" aria-hidden="true">
-            CP
-          </span>
-          <span className="brand-copy">
-            <strong>CoolPath</strong>
-            <small>Public signal / live</small>
-          </span>
-        </a>
-        <nav className="view-switcher" aria-label="Application views">
-          <button aria-pressed={view === "public"} onClick={() => setView("public")}>
-            Public directory
-          </button>
-          <button aria-pressed={view === "technical"} onClick={() => setView("technical")}>
-            Source health
-          </button>
-        </nav>
-      </header>
+      <AppHeader view={view} onNavigate={navigate} />
 
-      <main id="main" className="app-shell">
-        <section className="hero" aria-labelledby="hero-title">
-          <div className="hero__copy" data-reveal>
-            <p className="eyebrow">Official cooling information / {city.city.displayName}</p>
-            <h1 id="hero-title">
-              Information you can <em>trace.</em>
-            </h1>
-            <p className="hero__lede">
-              CoolPath publishes municipal cooling records only after they pass a strict source
-              contract. Broken collector output never replaces the last trusted report.
-            </p>
-            <div className="hero__source-line">
-              <span className={`pulse pulse--${isTrusted ? "live" : "watch"}`} />
-              <span>{isTrusted ? "Verified civic signal" : "Last trusted civic signal"}</span>
-              <span aria-hidden="true">/</span>
-              <time dateTime={city.snapshot?.observedAt}>{lastVerified}</time>
-            </div>
+      {view === "public" ? (
+        <DirectoryView
+          city={city}
+          onEvidence={(site, trigger) => {
+            setReturnFocusTo(trigger);
+            setEvidenceSite(site);
+          }}
+        />
+      ) : (
+        <TechnicalView
+          city={city}
+          incident={incidentQuery.data ?? null}
+          controls={
+            <>
+              {incidentQuery.isError ? (
+                <p className="inline-error" role="alert">
+                  Incident details could not be loaded. Source status and the protected public
+                  snapshot remain visible.
+                </p>
+              ) : null}
+              {city.source.mode === "mock" ? (
+                <PresenterControls
+                  state={city.source.status}
+                  incident={incidentQuery.data ?? null}
+                  pending={action.isPending}
+                  feedback={actionFeedback}
+                  onAction={(next) => action.mutate(next)}
+                />
+              ) : null}
+            </>
+          }
+        />
+      )}
+
+      <footer className="site-footer">
+        <div className="page-width site-footer__inner">
+          <div>
+            <strong>CoolPath Live</strong>
+            <span>Evidence before availability.</span>
           </div>
-          <div className="hero__visual" data-reveal>
-            <SignalField state={city.source.status} city={city.city.displayName} />
-          </div>
-          <aside className="source-ledger" aria-label="Official source ledger" data-reveal>
-            <div className="source-ledger__index">SOURCE / 001</div>
-            <div>
-              <span>Issuing authority</span>
-              <strong>{city.source.agencyName}</strong>
-            </div>
-            <div>
-              <span>Published records</span>
-              <strong>{String(city.snapshot?.sites.length ?? 0).padStart(2, "0")}</strong>
-            </div>
-            <div>
-              <span>Policy version</span>
-              <strong>{city.source.policyVersion}</strong>
-            </div>
-            <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-              Open issuing source <ArrowSquareOut size={17} aria-hidden="true" />
-            </a>
-          </aside>
-        </section>
-
-        <StatusBanner state={city.source.status} />
-
-        {city.source.mode === "mock" && view === "technical" ? (
-          <section className="demo-sequence" aria-labelledby="demo-title" data-reveal>
-            <div className="demo-sequence__intro">
-              <span>Presenter console</span>
-              <h2 id="demo-title">Break the source. Keep the truth.</h2>
-              <p>
-                A deterministic run through baseline, drift, human review and verified recovery.
-              </p>
-            </div>
-            <div className="demo-actions">
-              <button disabled={action.isPending} onClick={() => action.mutate("reset")}>
-                <span>01</span>
-                <ArrowClockwise size={18} aria-hidden="true" />
-                Healthy baseline
-              </button>
-              <button disabled={action.isPending} onClick={() => action.mutate("drift")}>
-                <span>02</span>
-                <Heartbeat size={18} aria-hidden="true" />
-                Simulate drift
-              </button>
-              <button
-                disabled={
-                  action.isPending || !incidentQuery.data || city.source.status === "REVIEW_PENDING"
-                }
-                onClick={() => action.mutate("heal")}
-              >
-                <span>03</span>
-                <Wrench size={18} aria-hidden="true" />
-                Prepare repair
-              </button>
-              <button
-                className="demo-actions__approve"
-                disabled={action.isPending || city.source.status !== "REVIEW_PENDING"}
-                onClick={() => action.mutate("approve")}
-              >
-                <span>04</span>
-                <Check size={18} aria-hidden="true" />
-                Approve and re-run
-              </button>
-            </div>
-            <p className="action-feedback" aria-live="polite">
-              {action.isPending
-                ? "Running the selected verification step…"
-                : action.isError
-                  ? "The demo action failed. Reset and try again."
-                  : "Mock source, real validation path. No step bypasses the contract."}
-            </p>
-          </section>
-        ) : null}
-
-        {view === "public" ? (
-          <section className="records-section" aria-labelledby="locations-title" data-reveal>
-            <div className="records-heading">
-              <div>
-                <span>Published civic record</span>
-                <h2 id="locations-title">Cooling locations</h2>
-              </div>
-              <p>
-                {city.snapshot?.sites.length ?? 0} source-backed entries
-                <br />
-                No inferred availability
-              </p>
-            </div>
-            <SiteList
-              sites={city.snapshot?.sites ?? []}
-              state={city.source.status}
-              onEvidence={setEvidenceSite}
-            />
-            <div className="safety-note">
-              <ShieldCheck size={20} aria-hidden="true" />
-              <p>
-                CoolPath is not emergency or medical guidance. It does not claim a location is safe,
-                nearest, open now or currently available.
-              </p>
-            </div>
-          </section>
-        ) : (
-          <section className="records-section" aria-labelledby="health-title" data-reveal>
-            <div className="records-heading">
-              <div>
-                <span>Source integrity room</span>
-                <h2 id="health-title">What happened to the signal</h2>
-              </div>
-              <p>
-                Collector evidence
-                <br />
-                Contract and human review
-              </p>
-            </div>
-            <TechnicalView city={city} incident={incidentQuery.data ?? null} />
-          </section>
-        )}
-      </main>
-
-      <footer className="app-shell">
-        <div>
-          <strong>CoolPath Live</strong>
-          <span>Evidence before availability.</span>
+          <p>Public facility information only. No location tracking, accounts or analytics.</p>
+          <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
+            Source page <ArrowSquareOut size={15} aria-hidden="true" />
+          </a>
         </div>
-        <p>Public facility information only. No location tracking, accounts or analytics.</p>
-        <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-          Official source <ArrowSquareOut size={15} aria-hidden="true" />
-        </a>
       </footer>
-      <EvidenceDrawer site={evidenceSite} onClose={() => setEvidenceSite(null)} />
+
+      <EvidenceDrawer
+        site={evidenceSite}
+        sourceName={city.source.agencyName}
+        timezone={city.city.timezone}
+        state={city.source.status}
+        returnFocusTo={returnFocusTo}
+        onClose={() => setEvidenceSite(null)}
+      />
     </div>
   );
 }
 
 function LoadingScreen() {
   return (
-    <main className="app-shell loading-shell" aria-busy="true" aria-label="Loading CoolPath">
-      <div className="skeleton skeleton--nav" />
-      <div className="skeleton skeleton--hero" />
-      <div className="skeleton skeleton--banner" />
-      <div className="skeleton skeleton--card" />
-      <div className="skeleton skeleton--card" />
+    <main className="page-width loading-state" aria-busy="true" aria-label="Loading CoolPath">
+      <div className="loading-block loading-block--header" />
+      <div className="loading-block loading-block--title" />
+      <div className="loading-block loading-block--status" />
+      <div className="loading-block loading-block--record" />
+      <div className="loading-block loading-block--record" />
     </main>
   );
 }

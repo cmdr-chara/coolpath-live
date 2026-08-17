@@ -1,19 +1,31 @@
 import { ArrowSquareOut, X } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import type { CoolingSite } from "../types";
-import { formatTemporalClaim } from "./temporal";
+import type { CoolingSite, SourceState } from "../types";
+import { formatInstant, sourceHost } from "./format";
+import { statusContent } from "./status-content";
+import { formatTemporalClaim, formatTemporalClaimLabel } from "./temporal";
 
 export function EvidenceDrawer({
   site,
+  sourceName,
+  timezone,
+  state,
+  returnFocusTo,
   onClose
 }: {
   site: CoolingSite | null;
+  sourceName: string;
+  timezone: string;
+  state: SourceState;
+  returnFocusTo: HTMLButtonElement | null;
   onClose: () => void;
 }) {
+  const status = statusContent[state];
+
   return (
     <Dialog.Root
       open={Boolean(site)}
-      onOpenChange={(open) => {
+      onOpenChange={(open: boolean) => {
         if (!open) onClose();
       }}
     >
@@ -22,47 +34,54 @@ export function EvidenceDrawer({
         {site ? (
           <Dialog.Content
             className="evidence-drawer"
-            aria-labelledby="evidence-title"
             aria-describedby="evidence-description"
+            onCloseAutoFocus={(event: Event) => {
+              if (!returnFocusTo) return;
+              event.preventDefault();
+              returnFocusTo.focus();
+            }}
           >
-            <div className="evidence-drawer__rail" aria-hidden="true">
-              VERIFIED SOURCE RECORD / {site.id}
+            <div className="evidence-drawer__topline">
+              <span>SOURCE RECORD / {site.id}</span>
+              <span>{status.reportLabel}</span>
             </div>
             <Dialog.Close asChild>
-              <button className="icon-button drawer-close" aria-label="Close evidence">
-                <X size={19} aria-hidden="true" />
+              <button className="icon-button drawer-close" aria-label="Close evidence record">
+                <X size={20} aria-hidden="true" />
               </button>
             </Dialog.Close>
-            <p className="eyebrow">Evidence ledger</p>
-            <Dialog.Title id="evidence-title">{site.name}</Dialog.Title>
+            <p className="kicker">Evidence ledger</p>
+            <Dialog.Title>{site.name}</Dialog.Title>
             <Dialog.Description id="evidence-description">
-              Every statement below is traceable to the issuing public source. Missing information
-              remains explicitly unstated.
+              Traceable to {sourceName}. Missing information remains explicitly unstated.
             </Dialog.Description>
+
             <dl className="evidence-ledger">
               <div>
                 <dt>Published address</dt>
                 <dd>{site.addressText}</dd>
               </div>
               <div>
-                <dt>Temporal statement</dt>
+                <dt>{formatTemporalClaimLabel(site.temporalClaim)}</dt>
                 <dd>{formatTemporalClaim(site.temporalClaim)}</dd>
               </div>
               <div>
-                <dt>Observed at</dt>
+                <dt>Observed</dt>
                 <dd>
-                  <time dateTime={site.observedAt}>{site.observedAt}</time>
+                  <time dateTime={site.observedAt}>{formatInstant(site.observedAt, timezone)}</time>
                 </dd>
               </div>
               <div>
-                <dt>Evidence URL</dt>
+                <dt>Evidence host</dt>
                 <dd>
-                  <code>{site.evidenceUrl}</code>
+                  <code>{sourceHost(site.evidenceUrl)}</code>
                 </dd>
               </div>
             </dl>
+
             <section className="claim-section" aria-labelledby="claims-title">
-              <h3 id="claims-title">Explicit claims</h3>
+              <div className="section-label">Explicit claims</div>
+              <h3 id="claims-title">Only what the source states</h3>
               {site.explicitClaims.length === 0 ? (
                 <p>Not stated by the source.</p>
               ) : (
@@ -75,8 +94,9 @@ export function EvidenceDrawer({
                 ))
               )}
             </section>
-            <a className="button" href={site.evidenceUrl} target="_blank" rel="noreferrer">
-              Open official evidence <ArrowSquareOut size={18} aria-hidden="true" />
+
+            <a className="primary-action" href={site.evidenceUrl} target="_blank" rel="noreferrer">
+              Open source page <ArrowSquareOut size={18} aria-hidden="true" />
             </a>
           </Dialog.Content>
         ) : null}

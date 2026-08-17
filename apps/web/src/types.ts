@@ -54,6 +54,19 @@ export interface TimelineEvent {
   tone: "neutral" | "positive" | "warning" | "critical";
 }
 
+export interface CitySummary {
+  id: string;
+  slug: string;
+  displayName: string;
+  region: string;
+  timezone: string;
+  sourceStatus: SourceState;
+  lastVerified: string | null;
+  lastVerifiedLocal: string | null;
+  siteCount: number;
+  mode: "real" | "mock";
+}
+
 export interface CityResponse {
   city: {
     id: string;
@@ -75,6 +88,7 @@ export interface CityResponse {
   snapshot: {
     id: string;
     observedAt: string;
+    observedAtLocal?: string;
     contentHash: string;
     status: string;
     sites: CoolingSite[];

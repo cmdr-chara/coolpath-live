@@ -1,35 +1,40 @@
 # CoolPath Live demo script
 
-Target length: 3-4 minutes. The demo should be recorded with the browser, terminal and Bright Data Scraper Studio identity visible when available.
+Target length: 3-4 minutes. Record the browser, terminal and Bright Data Scraper Studio collector identity when available.
 
-## Opening: the problem
+## Opening: the public record
 
-Show the healthy public directory.
+Show the healthy **Public directory**.
 
-Say: "Municipal pages can return HTTP 200 while a scraper silently produces zero rows or malformed fields. CoolPath publishes only evidence that passed a typed contract."
+Say: “Public directory pages can return HTTP 200 while a scraper silently produces zero rows or malformed fields. CoolPath publishes only evidence that passed a typed contract.”
 
-Point out:
+Point out, in order:
 
-- Reported by the official source
-- Last verified
-- Source-published hours
-- Not stated handling
-- Official evidence drawer
+- Philadelphia or the clearly labelled deterministic Demo City fixture;
+- **Verified public source**;
+- Pennsylvania 211 or the synthetic fixture source name;
+- **Last verified** with the explicit IANA timezone;
+- the first cooling-location record inside the initial mobile viewport;
+- **Source-published hours** and **Not stated by the source**;
+- the evidence ledger and its source-page link.
 
-State clearly: "CoolPath is not emergency or medical guidance, and it does not claim a location is open now or currently available."
+State clearly: “CoolPath is not emergency or medical guidance. It does not claim that a location is safe, nearest, open now, currently available, medically appropriate or reachable by a safe route.”
 
 ## Healthy baseline
 
-Open **Source health** and show:
+Open **Technical view**. The URL should become `?view=technical`.
 
-- Collector ID
-- mock or live mode label
-- collector version
-- extracted record count
-- required-field completeness
-- published record count
+Use the publication board to show the complete path:
 
-In the staged demo, click **Healthy baseline**. Explain that Demo City is synthetic and deterministic; it is not presented as municipal data.
+```text
+SOURCE → SCRAPER STUDIO → TYPED CONTRACT → PUBLISHED SNAPSHOT
+                                  ↓
+                              QUARANTINE
+```
+
+Point out the source host, Collector ID, collector version, returned rows, required-field completeness, policy version, published record count and `publishedSnapshotId` boundary.
+
+In mock mode, click **Healthy baseline**. Explain that Demo City is synthetic and deterministic; it is not represented as Pennsylvania 211 or municipal data.
 
 ## Silent layout drift
 
@@ -37,27 +42,28 @@ Click **Simulate drift**.
 
 Show that:
 
-- the collector still returned data;
-- validation found missing name and HTML contamination;
-- the candidate was quarantined;
-- the source became degraded;
-- the public view still shows the last trusted three-record snapshot.
+- the same collector returned a candidate;
+- the contract found missing identity and HTML contamination;
+- the red quarantine branch became active;
+- the published snapshot stayed protected;
+- the public view still shows the last trusted three-record report.
 
-Say: "The newest run is not automatically the public truth. Public reads follow `publishedSnapshotId`."
+Say: “The newest run is not automatically the public truth. Public reads follow `publishedSnapshotId`.”
 
-## Self-healing review
+## Human-reviewed repair
 
-Click **Prepare repair** and return to **Source health**.
+Click **Prepare repair**.
 
-Show the field-specific prompt and three selector changes. Emphasize:
+Show:
 
-- same Collector ID;
-- asynchronous repair boundary;
-- visible before/after selectors;
-- no automatic approval;
-- no silent public selector change.
+- **Repair needs manual approval**;
+- the incident reason codes;
+- the bounded field-specific prompt;
+- the three before/after selector changes;
+- the unchanged Collector ID;
+- the disabled publication path until approval.
 
-If showing the real Bright Data flow, mention that processing can take several minutes. The staged fixture is the fallback and is labelled as such.
+Emphasize that no selector is silently applied and that real Bright Data healing is asynchronous. The deterministic fixture is a labelled demonstration of the same approval boundary.
 
 ## Approval and recovery
 
@@ -66,17 +72,16 @@ Click **Approve and re-run**.
 Show:
 
 - the same collector runs again;
-- all records pass the complete contract;
+- the complete contract passes;
+- quarantine returns to clear;
 - the recovered snapshot is transactionally promoted;
-- the incident is linked to its resolving run;
-- the recovery timeline records the sequence.
+- the incident is resolved by the new run;
+- the recovery timeline records every decision.
 
-Return to the public view and point out **Source recovered and re-verified**.
+Return to **Public directory** and point out **Source recovered and re-verified** and the updated **Last verified** timestamp.
 
 ## Close
 
-Summarize the product in one sentence:
+“CoolPath combines Bright Data collection and self-healing with a strict evidence contract, so broken web extraction cannot silently become public cooling information.”
 
-"CoolPath combines Bright Data collection and self-healing with a strict evidence contract, so broken web extraction cannot silently become civic information."
-
-Do not claim instant healing, full autonomy, guaranteed opening status, emergency suitability or production deployment unless those facts are demonstrated during the recording.
+Do not claim instant healing, full autonomy, guaranteed opening status, emergency suitability, source authority or production deployment unless those facts are demonstrated during the recording.
