@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrightDataScraperStudioClient } from "./bright-data-client.js";
 
 interface CapturedRequest {
@@ -22,6 +22,17 @@ function parseJsonBody(body: BodyInit | null | undefined): unknown {
   if (typeof body !== "string") throw new Error("Expected a JSON string request body");
   return JSON.parse(body) as unknown;
 }
+
+function stalledResponse(): Response {
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start: () => undefined
+    }),
+    { status: 200, headers: { "content-type": "application/json" } }
+  );
+}
+
+afterEach(() => vi.useRealTimers());
 
 describe("Bright Data Scraper Studio client", () => {
   it("refuses to send credentials over a non-HTTPS base URL", () => {
@@ -172,5 +183,70 @@ describe("Bright Data Scraper Studio client", () => {
       message: true,
       auto_save: true
     });
+  });
+
+  it("times out while the trigger response body is stalled", async () => {
+    vi.useFakeTimers();
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollTimeoutMs: 20,
+      fetchImplementation: sequencedFetch([stalledResponse()], [])
+    });
+    const operation = client.runCollector({
+      sourceId: "source-1",
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling"
+    });
+
+    await vi.advanceTimersByTimeAsync(20);
+    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("times out while the dataset response body is stalled", async () => {
+    vi.useFakeTimers();
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollTimeoutMs: 20,
+      fetchImplementation: sequencedFetch(
+        [
+          new Response(JSON.stringify({ collection_id: "collection-stalled" }), { status: 200 }),
+          stalledResponse()
+        ],
+        []
+      )
+    });
+    const operation = client.runCollector({
+      sourceId: "source-1",
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling"
+    });
+
+    await vi.advanceTimersByTimeAsync(20);
+    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("clears the operation timer after a successful collection", async () => {
+    vi.useFakeTimers();
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollTimeoutMs: 1_000,
+      fetchImplementation: sequencedFetch(
+        [
+          new Response(JSON.stringify({ collection_id: "collection-complete" }), { status: 200 }),
+          new Response(JSON.stringify([{ name: "Cooling Center" }]), { status: 200 })
+        ],
+        []
+      )
+    });
+
+    await client.runCollector({
+      sourceId: "source-1",
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling"
+    });
+
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
