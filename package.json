@@ -1,0 +1,40 @@
+{
+  "name": "coolpath-live",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --parallel --filter @coolpath/api --filter @coolpath/web dev",
+    "dev:api": "pnpm --filter @coolpath/api dev",
+    "dev:web": "pnpm --filter @coolpath/web dev",
+    "demo": "pnpm --filter @coolpath/api demo",
+    "demo:reset": "pnpm --filter @coolpath/api demo:reset",
+    "smoke:live": "pnpm --filter @coolpath/api smoke:live",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -b packages/domain packages/test-fixtures packages/source-adapters packages/db apps/api --pretty false && pnpm --filter @coolpath/web typecheck",
+    "verify": "pnpm lint && pnpm format && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.0",
+    "eslint": "^9.35.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
+  }
+}

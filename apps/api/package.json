@@ -1,0 +1,29 @@
+{
+  "name": "@coolpath/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "demo": "tsx src/scripts/demo.ts",
+    "demo:reset": "tsx src/scripts/reset.ts",
+    "smoke:live": "tsx src/scripts/live-smoke.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@coolpath/db": "workspace:*",
+    "@coolpath/domain": "workspace:*",
+    "@coolpath/source-adapters": "workspace:*",
+    "@coolpath/test-fixtures": "workspace:*",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/helmet": "^13.0.1",
+    "dotenv": "^17.2.2",
+    "fastify": "^5.5.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}
