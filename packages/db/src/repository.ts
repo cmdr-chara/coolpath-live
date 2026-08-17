@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { City, CoolingSite, Source, SourceState, ValidationSummary } from "@coolpath/domain";
+import type {
+  City,
+  CoolingSite,
+  Source,
+  SourceState,
+  ValidationSummary
+} from "@coolpath/domain";
 import Database from "better-sqlite3";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import { runMigrations } from "./migrator.js";
 import { cities, incidents, ingestRuns, snapshots, sources, timelineEvents } from "./schema.js";
 
 export interface StoredSnapshot {
@@ -22,6 +29,24 @@ export interface StoredSnapshot {
 export interface StoredSource extends Source {
   currentState: SourceState;
   mode: "real" | "mock";
+}
+
+export type StoredValidationSummary = Omit<ValidationSummary, "sites">;
+
+export interface StoredIngestRun {
+  id: string;
+  sourceId: string;
+  startedAt: string;
+  fetchedAt: string | null;
+  completedAt: string | null;
+  outcome: string;
+  collectorId: string;
+  collectorVersion: string;
+  schemaVersion: string;
+  recordCount: number;
+  rawSha256: string;
+  reasonCodes: string[];
+  validationSummary: StoredValidationSummary;
 }
 
 export interface StoredIncident {
@@ -49,98 +74,45 @@ export interface TimelineEvent {
   tone: "neutral" | "positive" | "warning" | "critical";
 }
 
-const migration = `
-CREATE TABLE IF NOT EXISTS cities (
-  id TEXT PRIMARY KEY,
-  slug TEXT NOT NULL UNIQUE,
-  display_name TEXT NOT NULL,
-  region TEXT NOT NULL,
-  timezone TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS sources (
-  id TEXT PRIMARY KEY,
-  city_id TEXT NOT NULL REFERENCES cities(id),
-  agency_name TEXT NOT NULL,
-  canonical_url TEXT NOT NULL,
-  allowed_origins_json TEXT NOT NULL,
-  collector_id TEXT NOT NULL,
-  freshness_ttl_minutes INTEGER NOT NULL,
-  policy_version TEXT NOT NULL,
-  enabled INTEGER NOT NULL,
-  published_snapshot_id TEXT,
-  current_state TEXT NOT NULL,
-  mode TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS ingest_runs (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES sources(id),
-  started_at TEXT NOT NULL,
-  fetched_at TEXT,
-  completed_at TEXT,
-  outcome TEXT NOT NULL,
-  collector_id TEXT NOT NULL,
-  collector_version TEXT NOT NULL,
-  schema_version TEXT NOT NULL,
-  record_count INTEGER NOT NULL,
-  raw_sha256 TEXT NOT NULL,
-  reason_codes_json TEXT NOT NULL,
-  validation_summary_json TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS snapshots (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES sources(id),
-  run_id TEXT NOT NULL REFERENCES ingest_runs(id),
-  observed_at TEXT NOT NULL,
-  source_reported_updated_at TEXT,
-  content_hash TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('candidate','quarantined','published','superseded')),
-  promoted_at TEXT,
-  sites_json TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS incidents (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES sources(id),
-  run_id TEXT NOT NULL REFERENCES ingest_runs(id),
-  severity TEXT NOT NULL,
-  reason_codes_json TEXT NOT NULL,
-  opened_at TEXT NOT NULL,
-  heal_state TEXT NOT NULL,
-  heal_job_id TEXT,
-  heal_prompt TEXT,
-  heal_diff_json TEXT,
-  resolved_by_run_id TEXT,
-  resolved_at TEXT
-);
-CREATE TABLE IF NOT EXISTS timeline_events (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES sources(id),
-  occurred_at TEXT NOT NULL,
-  kind TEXT NOT NULL,
-  title TEXT NOT NULL,
-  detail TEXT NOT NULL,
-  tone TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_snapshots_source_status ON snapshots(source_id, status);
-CREATE INDEX IF NOT EXISTS idx_runs_source_started ON ingest_runs(source_id, started_at DESC);
-CREATE INDEX IF NOT EXISTS idx_incidents_source_open ON incidents(source_id, resolved_at);
-CREATE INDEX IF NOT EXISTS idx_timeline_source_time ON timeline_events(source_id, occurred_at DESC);
-`;
+export interface PublicationResult {
+  incidentResolved: boolean;
+  sourceState: "HEALTHY" | "RECOVERED";
+}
 
 export class CoolPathRepository {
   private readonly sqlite: Database.Database;
   private readonly db;
+  private closed = false;
 
   constructor(databaseUrl: string) {
     if (databaseUrl !== ":memory:") mkdirSync(dirname(databaseUrl), { recursive: true });
     this.sqlite = new Database(databaseUrl);
     this.sqlite.pragma("journal_mode = WAL");
     this.sqlite.pragma("foreign_keys = ON");
-    this.sqlite.exec(migration);
+    runMigrations(this.sqlite);
     this.db = drizzle(this.sqlite);
   }
 
   close(): void {
+    if (this.closed) return;
+    this.closed = true;
     this.sqlite.close();
+  }
+
+  checkHealth(): boolean {
+    if (this.closed) return false;
+    try {
+      return this.sqlite.prepare("SELECT 1 AS ok").get() !== undefined;
+    } catch {
+      return false;
+    }
+  }
+
+  getAppliedMigrations(): string[] {
+    return this.sqlite
+      .prepare("SELECT version FROM _coolpath_migrations ORDER BY version")
+      .pluck()
+      .all() as string[];
   }
 
   reset(): void {
@@ -234,6 +206,35 @@ export class CoolPathRepository {
     this.db.update(sources).set({ currentState: state }).where(eq(sources.id, sourceId)).run();
   }
 
+  markSourceStale(input: {
+    sourceId: string;
+    occurredAt: string;
+    observedAt: string;
+  }): boolean {
+    return this.db.transaction((transaction) => {
+      const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
+      if (!source || source.currentState === "STALE") return false;
+      transaction
+        .update(sources)
+        .set({ currentState: "STALE" })
+        .where(eq(sources.id, input.sourceId))
+        .run();
+      transaction
+        .insert(timelineEvents)
+        .values({
+          id: randomUUID(),
+          sourceId: input.sourceId,
+          occurredAt: input.occurredAt,
+          kind: "freshness_expired",
+          title: "Trusted snapshot is now historical",
+          detail: `The published snapshot observed at ${input.observedAt} exceeded its freshness TTL. It remains preserved as historical evidence.`,
+          tone: "warning"
+        })
+        .run();
+      return true;
+    });
+  }
+
   recordRun(input: {
     id: string;
     sourceId: string;
@@ -252,7 +253,17 @@ export class CoolPathRepository {
     this.db
       .insert(ingestRuns)
       .values({
-        ...input,
+        id: input.id,
+        sourceId: input.sourceId,
+        startedAt: input.startedAt,
+        fetchedAt: input.fetchedAt,
+        completedAt: input.completedAt,
+        outcome: input.outcome,
+        collectorId: input.collectorId,
+        collectorVersion: input.collectorVersion,
+        schemaVersion: input.schemaVersion,
+        recordCount: input.recordCount,
+        rawSha256: input.rawSha256,
         reasonCodesJson: JSON.stringify(input.reasonCodes),
         validationSummaryJson: JSON.stringify({
           disposition: input.validationSummary.disposition,
@@ -261,7 +272,8 @@ export class CoolPathRepository {
           recordCount: input.validationSummary.recordCount,
           requiredFieldCompleteness: input.validationSummary.requiredFieldCompleteness,
           optionalClaimCoverage: input.validationSummary.optionalClaimCoverage,
-          contentHash: input.validationSummary.contentHash
+          contentHash: input.validationSummary.contentHash,
+          coverage: input.validationSummary.coverage
         })
       })
       .run();
@@ -329,6 +341,104 @@ export class CoolPathRepository {
     });
   }
 
+  publishSnapshot(input: {
+    sourceId: string;
+    snapshotId: string;
+    runId: string;
+    promotedAt: string;
+    recoveredByHealing: boolean;
+    recordCount: number;
+  }): PublicationResult {
+    return this.db.transaction((transaction) => {
+      const candidate = transaction
+        .select()
+        .from(snapshots)
+        .where(and(eq(snapshots.id, input.snapshotId), eq(snapshots.sourceId, input.sourceId)))
+        .get();
+      if (!candidate || candidate.runId !== input.runId) {
+        throw new Error("Published snapshot must belong to the proving run");
+      }
+      const source = transaction
+        .select()
+        .from(sources)
+        .where(eq(sources.id, input.sourceId))
+        .get();
+      if (!source || candidate.status !== "candidate") {
+        throw new Error("Only a candidate snapshot belonging to the source can be promoted");
+      }
+      if (source.publishedSnapshotId) {
+        transaction
+          .update(snapshots)
+          .set({ status: "superseded" })
+          .where(eq(snapshots.id, source.publishedSnapshotId))
+          .run();
+      }
+      transaction
+        .update(snapshots)
+        .set({ status: "published", promotedAt: input.promotedAt })
+        .where(eq(snapshots.id, input.snapshotId))
+        .run();
+      transaction
+        .update(sources)
+        .set({ publishedSnapshotId: input.snapshotId })
+        .where(eq(sources.id, input.sourceId))
+        .run();
+
+      const currentIncident = transaction
+        .select()
+        .from(incidents)
+        .where(and(eq(incidents.sourceId, input.sourceId), isNull(incidents.resolvedAt)))
+        .orderBy(desc(incidents.openedAt))
+        .get();
+      const sourceState = input.recoveredByHealing ? "RECOVERED" : "HEALTHY";
+      transaction
+        .update(sources)
+        .set({ currentState: sourceState })
+        .where(eq(sources.id, input.sourceId))
+        .run();
+
+      if (currentIncident) {
+        transaction
+          .update(incidents)
+          .set({
+            ...(input.recoveredByHealing ? { healState: "approved" as const } : {}),
+            resolvedByRunId: input.runId,
+            resolvedAt: input.promotedAt
+          })
+          .where(eq(incidents.id, currentIncident.id))
+          .run();
+      }
+
+      const ordinaryRecovery = currentIncident !== undefined && !input.recoveredByHealing;
+      transaction
+        .insert(timelineEvents)
+        .values({
+          id: randomUUID(),
+          sourceId: input.sourceId,
+          occurredAt: input.promotedAt,
+          kind: input.recoveredByHealing
+            ? "recovered"
+            : ordinaryRecovery
+              ? "recovered_check"
+              : "published",
+          title: input.recoveredByHealing
+            ? "Recovered snapshot published"
+            : ordinaryRecovery
+              ? "Source recovered through ordinary check"
+              : "Trusted snapshot published",
+          detail: input.recoveredByHealing
+            ? `${input.recordCount} records passed after the approved healing rerun. The incident was resolved by run ${input.runId}.`
+            : ordinaryRecovery
+              ? `${input.recordCount} records passed a normal source check. The incident was resolved by run ${input.runId} without applying a healing preview.`
+              : `${input.recordCount} records passed the complete contract suite.`,
+          tone: "positive"
+        })
+        .run();
+
+      return { incidentResolved: currentIncident !== undefined, sourceState };
+    });
+  }
+
   getSnapshot(snapshotId: string): StoredSnapshot | null {
     const row = this.db.select().from(snapshots).where(eq(snapshots.id, snapshotId)).get();
     return row ? this.mapSnapshot(row) : null;
@@ -342,7 +452,7 @@ export class CoolPathRepository {
     return snapshot?.status === "published" ? snapshot : null;
   }
 
-  getLatestRun(sourceId: string): Record<string, unknown> | null {
+  getLatestRun(sourceId: string): StoredIngestRun | null {
     const row = this.db
       .select()
       .from(ingestRuns)
@@ -352,7 +462,7 @@ export class CoolPathRepository {
     return row ? this.mapRun(row) : null;
   }
 
-  getRun(runId: string): Record<string, unknown> | null {
+  getRun(runId: string): StoredIngestRun | null {
     const row = this.db.select().from(ingestRuns).where(eq(ingestRuns.id, runId)).get();
     return row ? this.mapRun(row) : null;
   }
@@ -412,6 +522,11 @@ export class CoolPathRepository {
     return row ? this.mapIncident(row) : null;
   }
 
+  getIncident(incidentId: string): StoredIncident | null {
+    const row = this.db.select().from(incidents).where(eq(incidents.id, incidentId)).get();
+    return row ? this.mapIncident(row) : null;
+  }
+
   updateIncidentHeal(input: {
     incidentId: string;
     healState: StoredIncident["healState"];
@@ -419,24 +534,33 @@ export class CoolPathRepository {
     prompt?: string;
     diff?: StoredIncident["healDiff"];
   }): void {
-    this.db
-      .update(incidents)
-      .set({
-        healState: input.healState,
-        healJobId: input.jobId,
-        healPrompt: input.prompt,
-        healDiffJson: input.diff ? JSON.stringify(input.diff) : undefined
-      })
-      .where(eq(incidents.id, input.incidentId))
-      .run();
+    const changes: {
+      healState: StoredIncident["healState"];
+      healJobId?: string;
+      healPrompt?: string;
+      healDiffJson?: string;
+    } = { healState: input.healState };
+    if (input.jobId !== undefined) changes.healJobId = input.jobId;
+    if (input.prompt !== undefined) changes.healPrompt = input.prompt;
+    if (input.diff !== undefined) changes.healDiffJson = JSON.stringify(input.diff);
+    this.db.update(incidents).set(changes).where(eq(incidents.id, input.incidentId)).run();
   }
 
-  resolveIncident(sourceId: string, runId: string, resolvedAt: string): void {
+  resolveIncident(
+    sourceId: string,
+    runId: string,
+    resolvedAt: string,
+    approvedHealing = false
+  ): void {
     const current = this.getCurrentIncident(sourceId);
     if (!current) return;
     this.db
       .update(incidents)
-      .set({ healState: "approved", resolvedByRunId: runId, resolvedAt })
+      .set({
+        ...(approvedHealing ? { healState: "approved" as const } : {}),
+        resolvedByRunId: runId,
+        resolvedAt
+      })
       .where(eq(incidents.id, current.id))
       .run();
   }
@@ -448,12 +572,14 @@ export class CoolPathRepository {
       .run();
   }
 
-  listTimeline(sourceId: string): TimelineEvent[] {
+  listTimeline(sourceId: string, limit = 50): TimelineEvent[] {
+    const safeLimit = Math.min(100, Math.max(1, Math.trunc(limit)));
     return this.db
       .select()
       .from(timelineEvents)
       .where(eq(timelineEvents.sourceId, sourceId))
       .orderBy(desc(timelineEvents.occurredAt))
+      .limit(safeLimit)
       .all() as TimelineEvent[];
   }
 
@@ -474,13 +600,21 @@ export class CoolPathRepository {
     };
   }
 
-  private mapRun(row: typeof ingestRuns.$inferSelect): Record<string, unknown> {
+  private mapRun(row: typeof ingestRuns.$inferSelect): StoredIngestRun {
     return {
-      ...row,
+      id: row.id,
+      sourceId: row.sourceId,
+      startedAt: row.startedAt,
+      fetchedAt: row.fetchedAt,
+      completedAt: row.completedAt,
+      outcome: row.outcome,
+      collectorId: row.collectorId,
+      collectorVersion: row.collectorVersion,
+      schemaVersion: row.schemaVersion,
+      recordCount: row.recordCount,
+      rawSha256: row.rawSha256,
       reasonCodes: JSON.parse(row.reasonCodesJson) as string[],
-      validationSummary: JSON.parse(row.validationSummaryJson) as Record<string, unknown>,
-      reasonCodesJson: undefined,
-      validationSummaryJson: undefined
+      validationSummary: JSON.parse(row.validationSummaryJson) as StoredValidationSummary
     };
   }
 
