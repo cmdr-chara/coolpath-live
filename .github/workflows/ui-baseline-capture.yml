@@ -3,6 +3,8 @@ name: UI baseline capture
 on:
   push:
     branches: [frontend/reference-led-redesign]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
