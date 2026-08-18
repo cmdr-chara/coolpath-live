@@ -47,13 +47,22 @@ jobs:
           node <<'NODE'
           const { chromium } = require('@playwright/test');
 
-          const screenshot = async (page, path) => {
+          const resetViewport = async (page) => {
             await page.evaluate(() => {
               window.scrollTo(0, 0);
               if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
             });
             await page.waitForTimeout(80);
+          };
+
+          const screenshot = async (page, path) => {
+            await resetViewport(page);
             await page.screenshot({ path, fullPage: true });
+          };
+
+          const viewportScreenshot = async (page, path) => {
+            await resetViewport(page);
+            await page.screenshot({ path, fullPage: false });
           };
 
           (async () => {
@@ -105,10 +114,12 @@ jobs:
             await mobile.goto('http://127.0.0.1:5173/?view=technical');
             await mobile.getByRole('heading', { name: 'Source integrity' }).waitFor();
             await screenshot(mobile, 'ui-baseline/technical-healthy-390.png');
+            await viewportScreenshot(mobile, 'ui-baseline/technical-healthy-390-viewport.png');
 
             await mobile.getByRole('button', { name: /Simulate drift/ }).click();
             await mobile.getByLabel('Quarantine branch').getByText('Candidate quarantined').waitFor();
             await screenshot(mobile, 'ui-baseline/technical-drift-390.png');
+            await viewportScreenshot(mobile, 'ui-baseline/technical-drift-390-viewport.png');
 
             await browser.close();
           })().catch((error) => {
