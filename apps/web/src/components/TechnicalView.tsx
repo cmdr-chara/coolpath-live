@@ -179,9 +179,16 @@ export function TechnicalView({
           </div>
         ) : null}
 
-        <div className="operations-grid" data-motion-section>
+        <div
+          className={`operations-grid ${
+            incident ? "operations-grid--incident" : "operations-grid--healthy"
+          }`}
+          data-motion-section
+        >
           <section
-            className={`incident-register ${incident ? "incident-register--active" : ""}`}
+            className={`incident-register ${
+              incident ? "incident-register--active" : "incident-register--clear"
+            }`}
             aria-labelledby="incident-title"
           >
             <header className="ledger-title">
