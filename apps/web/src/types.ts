@@ -16,6 +16,16 @@ export type {
   TemporalClaim
 } from "@coolpath/domain";
 
+export type SourceMode = "real" | "mock";
+
+export interface CityIdentity {
+  id: string;
+  slug: string;
+  displayName: string;
+  region: string;
+  timezone: string;
+}
+
 export interface TimelineEvent {
   id: string;
   occurredAt: string;
@@ -25,80 +35,79 @@ export interface TimelineEvent {
   tone: "neutral" | "positive" | "warning" | "critical";
 }
 
-export interface CitySummary {
-  id: string;
-  slug: string;
-  displayName: string;
-  region: string;
-  timezone: string;
+export interface CitySummary extends CityIdentity {
   sourceStatus: SourceState;
   lastVerified: string | null;
   lastVerifiedLocal: string | null;
   siteCount: number;
-  mode: "real" | "mock";
+  mode: SourceMode;
+}
+
+export interface SourceReadModel {
+  id: string;
+  agencyName: string;
+  canonicalUrl: string;
+  collectorId: string;
+  freshnessTtlMinutes: number;
+  policyVersion: string;
+  status: SourceState;
+  mode: SourceMode;
+}
+
+export interface PublishedSnapshot {
+  id: string;
+  sourceId: string;
+  runId: string;
+  observedAt: string;
+  observedAtLocal?: string;
+  sourceReportedUpdatedAt: string | null;
+  contentHash: string;
+  status: SnapshotStatus;
+  promotedAt: string | null;
+  sites: CoolingSite[];
+}
+
+export interface SourceCoverage {
+  providerRecordsReceived: number;
+  normalizedRecordsAccepted: number;
+  recordsFilteredNotLocations: number;
+  exactDuplicatesRemoved: number;
+  recordsRejectedByValidation: number;
+  recordsQuarantined: number;
+}
+
+export interface RunValidationSummary {
+  disposition: QualityDisposition;
+  hardFailures: ReasonCode[];
+  softAnomalies: ReasonCode[];
+  recordCount: number;
+  requiredFieldCompleteness: number;
+  optionalClaimCoverage: number;
+  contentHash: string;
+  coverage?: SourceCoverage;
+}
+
+export interface LatestRun {
+  id: string;
+  sourceId: string;
+  startedAt: string;
+  fetchedAt: string | null;
+  completedAt: string | null;
+  outcome: QualityDisposition;
+  collectorId: string;
+  collectorVersion: string;
+  schemaVersion: string;
+  recordCount: number;
+  rawSha256: string;
+  reasonCodes: ReasonCode[];
+  validationSummary: RunValidationSummary;
 }
 
 export interface CityResponse {
-  city: {
-    id: string;
-    slug: string;
-    displayName: string;
-    region: string;
-    timezone: string;
-  };
-  source: {
-    id: string;
-    agencyName: string;
-    canonicalUrl: string;
-    collectorId: string;
-    freshnessTtlMinutes: number;
-    policyVersion: string;
-    status: SourceState;
-    mode: "real" | "mock";
-  };
-  snapshot: {
-    id: string;
-    sourceId: string;
-    runId: string;
-    observedAt: string;
-    observedAtLocal?: string;
-    sourceReportedUpdatedAt: string | null;
-    contentHash: string;
-    status: SnapshotStatus;
-    promotedAt: string | null;
-    sites: CoolingSite[];
-  } | null;
-  latestRun: {
-    id: string;
-    sourceId: string;
-    startedAt: string;
-    fetchedAt: string | null;
-    completedAt: string | null;
-    outcome: QualityDisposition;
-    collectorId: string;
-    collectorVersion: string;
-    schemaVersion: string;
-    recordCount: number;
-    rawSha256: string;
-    reasonCodes: ReasonCode[];
-    validationSummary: {
-      disposition: QualityDisposition;
-      hardFailures: ReasonCode[];
-      softAnomalies: ReasonCode[];
-      recordCount: number;
-      requiredFieldCompleteness: number;
-      optionalClaimCoverage: number;
-      contentHash: string;
-      coverage?: {
-        providerRecordsReceived: number;
-        normalizedRecordsAccepted: number;
-        recordsFilteredNotLocations: number;
-        exactDuplicatesRemoved: number;
-        recordsRejectedByValidation: number;
-        recordsQuarantined: number;
-      };
-    };
-  } | null;
+  city: CityIdentity;
+  source: SourceReadModel;
+  snapshot: PublishedSnapshot | null;
+  latestRun: LatestRun | null;
   incident: Incident | null;
   timeline: TimelineEvent[];
 }
