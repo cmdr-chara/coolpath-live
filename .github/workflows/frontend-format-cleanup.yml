@@ -1,0 +1,45 @@
+name: Frontend clean-code formatter
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: ${{ github.head_ref == 'frontend/reference-led-redesign' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format clean-code changes
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/App.tsx \
+            apps/web/src/api.ts \
+            apps/web/src/types.ts \
+            apps/web/src/hooks/useEntranceMotion.ts \
+            apps/web/src/components/TechnicalView.tsx \
+            apps/web/src/components/TechnicalOverview.tsx \
+            apps/web/src/components/TechnicalIncident.tsx \
+            apps/web/src/components/TechnicalEvidence.tsx \
+            pnpm-lock.yaml
+      - name: Remove one-shot workflow and commit
+        run: |
+          git rm .github/workflows/frontend-format-cleanup.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src pnpm-lock.yaml
+          git commit -m "Format frontend clean-code pass"
+          git push origin HEAD:frontend/reference-led-redesign
