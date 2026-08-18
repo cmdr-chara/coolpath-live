@@ -1,0 +1,75 @@
+name: Frontend style finalization
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: ${{ !contains(github.event.head_commit.message, 'Finalize frontend style architecture') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - name: Remove unused tokens and finalize stylesheet naming
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          unused = {
+              '--amber', '--amber-soft', '--blue', '--green', '--green-deep', '--green-soft',
+              '--ink', '--line', '--line-strong', '--muted', '--paper', '--paper-alt',
+              '--paper-raised', '--quiet', '--red', '--red-soft', '--serif', '--technical',
+              '--technical-ink', '--technical-line', '--technical-muted', '--technical-surface'
+          }
+
+          base = Path('apps/web/src/styles/base.css')
+          lines = base.read_text().splitlines()
+          cleaned = []
+          for line in lines:
+              stripped = line.strip()
+              if stripped == '/* Compatibility aliases while the technical view is migrated in phase 2. */':
+                  continue
+              if any(re.match(rf'{re.escape(name)}\s*:', stripped) for name in unused):
+                  continue
+              cleaned.append(line)
+          base.write_text('\n'.join(cleaned) + '\n')
+
+          styles = Path('apps/web/src/styles')
+          concept = styles / 'concept.css'
+          civic = styles / 'civic.css'
+          content = concept.read_text()
+          content = content.replace(
+              '/* Concept 1: civic clarity with image-led context and varied technical surfaces. */',
+              '/* Civic Clarity product styles. */'
+          )
+          content = content.replace(
+              '/* Final concept refinements after rendered QA. */',
+              '/* Rendered QA refinements. */'
+          )
+          content = content.replace(
+              '/* Distill pass: reduce card density and let proximity/dividers carry hierarchy. */',
+              '/* Container-density refinements: use proximity and dividers for secondary hierarchy. */'
+          )
+          civic.write_text(content)
+          concept.unlink()
+
+          entry = Path('apps/web/src/styles.css')
+          entry.write_text(entry.read_text().replace('./styles/concept.css', './styles/civic.css'))
+          PY
+      - name: Remove audit artifacts and commit
+        run: |
+          rm -f apps/web/TOKEN-AUDIT.tmp
+          git rm .github/workflows/frontend-style-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/styles apps/web/src/styles.css
+          git add -u apps/web/TOKEN-AUDIT.tmp
+          git commit -m "Finalize frontend style architecture"
+          git push origin HEAD:frontend/reference-led-redesign
