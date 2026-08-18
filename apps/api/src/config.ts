@@ -4,12 +4,22 @@ import { z } from "zod";
 
 loadEnv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
+const envBoolean = z.preprocess((value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off", ""].includes(normalized)) return false;
+  return value;
+}, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(8787),
   HOST: z.string().default("127.0.0.1"),
   DATABASE_URL: z.string().default("./data/coolpath.db"),
   COOLPATH_MODE: z.enum(["mock", "real"]).default("mock"),
+  AUTO_START_REAL_CHECK: envBoolean.default(false),
   BRIGHT_DATA_API_TOKEN: z.string().optional(),
   OPERATOR_API_TOKEN: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
