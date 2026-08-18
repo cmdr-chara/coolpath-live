@@ -113,12 +113,7 @@ export interface CityResponse {
 }
 
 export type HealState =
-  | "not_requested"
-  | "running"
-  | "review_pending"
-  | "approved"
-  | "rejected"
-  | "failed";
+  "not_requested" | "running" | "review_pending" | "approved" | "rejected" | "failed";
 
 export interface Incident {
   id: string;

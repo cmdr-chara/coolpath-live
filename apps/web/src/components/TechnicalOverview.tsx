@@ -3,7 +3,13 @@ import type { CityResponse, Incident } from "../types";
 import { formatPercent, formatState, sourceHost } from "./format";
 import { statusContent } from "./status-content";
 
-export function TechnicalOverview({ city, incident }: { city: CityResponse; incident: Incident | null }) {
+export function TechnicalOverview({
+  city,
+  incident
+}: {
+  city: CityResponse;
+  incident: Incident | null;
+}) {
   const run = city.latestRun;
   const snapshot = city.snapshot;
   const status = statusContent[city.source.status];

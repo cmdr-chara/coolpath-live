@@ -9,11 +9,7 @@ export function TechnicalEvidence({ city }: { city: CityResponse }) {
   const snapshot = city.snapshot;
 
   return (
-    <section
-      className="technical-card-grid"
-      aria-label="Verification evidence"
-      data-motion-section
-    >
+    <section className="technical-card-grid" aria-label="Verification evidence" data-motion-section>
       <article className="technical-card verification-card" data-motion-item>
         <div className="technical-card__content">
           <p className="section-label">Verification facts</p>
