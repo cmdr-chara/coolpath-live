@@ -15,17 +15,15 @@ The Collector ID is not a secret. API credentials and operator tokens are secret
 
 Before the large backend and clean-code refactors, the real Pennsylvania 211 collector was verified end to end with the following observed result:
 
-| Evidence                                                            | Verified result            |
-| ------------------------------------------------------------------- | -------------------------- |
-| Bright Data Collector ID                                            | `c_msxe8lsm2630ya30wu`     |
-| Provider records returned                                           | 25                         |
-| Failed crawls                                                       | 0                          |
-| Provider crawl success                                              | 100%                       |
-| Accepted cooling locations after source filtering/deduplication     | 23                         |
-| Real smoke disposition                                              | `publishable`              |
-| Real smoke reason codes                                             | none                       |
-| Real API source state                                               | `HEALTHY`                  |
-| Published snapshot                                                  | 23 locations               |
+- Bright Data Collector ID: `c_msxe8lsm2630ya30wu`
+- Provider records returned: 25
+- Failed crawls: 0
+- Provider crawl success: 100%
+- Accepted cooling locations after source filtering/deduplication: 23
+- Real smoke disposition: `publishable`
+- Real smoke reason codes: none
+- Real API source state: `HEALTHY`
+- Published snapshot: 23 locations
 
 The 25→23 reduction came from the source-specific normalization policy, including exclusion of non-location/hotline results and duplicate identities. These numbers describe that verified run only; they are not a claim that Pennsylvania 211 always contains exactly 25 provider rows or 23 accepted locations.
 
@@ -39,20 +37,18 @@ The final live gate should reuse the same Collector ID and perform exactly one p
 
 After the single collection, record the sanitized values below:
 
-| Final evidence                  | Result                     |
-| ------------------------------- | -------------------------- |
-| Git commit tested               | pending                    |
-| Collector ID                    | `c_msxe8lsm2630ya30wu`     |
-| Provider records received       | pending                    |
-| Normalized records accepted     | pending                    |
-| Filtered non-locations          | pending                    |
-| Exact duplicates removed        | pending                    |
-| Records rejected by validation  | pending                    |
-| Disposition                     | pending                    |
-| Reason codes                    | pending                    |
-| `/readyz`                       | pending                    |
-| Source state                    | pending                    |
-| Published snapshot count        | pending                    |
+- Git commit tested: pending
+- Collector ID: `c_msxe8lsm2630ya30wu`
+- Provider records received: pending
+- Normalized records accepted: pending
+- Filtered non-locations: pending
+- Exact duplicates removed: pending
+- Records rejected by validation: pending
+- Disposition: pending
+- Reason codes: pending
+- `/readyz`: pending
+- Source state: pending
+- Published snapshot count: pending
 
 Do not fill these fields from the historical baseline. They must come from the final live run.
 
