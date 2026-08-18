@@ -984,3 +984,342 @@ body {
     padding: 4px 16px 16px;
   }
 }
+
+/* Final concept refinements after rendered QA. */
+.site-record__identity {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.site-record__mark {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #1a886b, #116a53);
+  box-shadow: 0 5px 13px rgb(20 121 95 / 0.16);
+}
+
+.site-record__identity address {
+  display: block;
+  margin-top: 5px;
+}
+
+.presenter-console > header {
+  display: flex;
+  max-width: 760px;
+  flex-direction: column;
+  align-items: center;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.presenter-console > header > p {
+  max-width: 650px;
+  margin: 4px auto 0;
+  text-align: center;
+}
+
+.presenter-steps button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.presenter-steps__number {
+  position: absolute;
+  top: 8px;
+  left: 9px;
+}
+
+.presenter-feedback {
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .site-record__identity {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .site-record__mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .directory-meta__report {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    padding: 0 7px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: rgb(255 255 255 / 0.72);
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .directory-meta__separator {
+    display: none;
+  }
+
+  .presenter-console > header,
+  .presenter-console > header > p,
+  .presenter-feedback {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .presenter-steps button {
+    justify-content: flex-start;
+    padding-left: 34px;
+  }
+}
+
+/* Distill pass: reduce card density and let proximity/dividers carry hierarchy. */
+
+/* Public directory: one continuous result surface instead of one card per location. */
+.site-list {
+  gap: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-record {
+  padding: 18px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-record + .site-record {
+  border-top: 1px solid #e3ebe7;
+}
+
+.site-record:hover,
+.site-record:focus-within {
+  border-color: transparent;
+  background: linear-gradient(90deg, rgb(231 245 238 / 0.5), transparent 72%);
+  box-shadow: none;
+}
+
+.boundary-note {
+  margin-top: 22px;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Technical overview: metrics become an information rail, not another card. */
+.integrity-metrics {
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.integrity-metrics > div {
+  background: transparent;
+}
+
+.pipeline-panel {
+  box-shadow: none;
+}
+
+.quarantine-branch--idle {
+  padding: 5px 0;
+  background: transparent;
+}
+
+/* Evidence reads as one workspace split into sections, not four independent cards. */
+.technical-card-grid {
+  gap: 0;
+  margin-top: 28px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.technical-card {
+  min-height: 220px;
+  padding: 24px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.technical-card:nth-child(odd) {
+  border-right: 1px solid var(--border);
+}
+
+.technical-card:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--border);
+}
+
+.verification-card {
+  padding-right: 24px;
+}
+
+.verification-card > img,
+.trust-card > img {
+  border-radius: 12px;
+}
+
+.snapshot-card__hero {
+  gap: 10px;
+  align-items: end;
+  margin-top: 22px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.snapshot-card__hero strong {
+  font-size: 48px;
+}
+
+.trust-card {
+  padding: 24px;
+}
+
+.trust-card > img {
+  min-height: 176px;
+}
+
+.trust-card__copy {
+  padding: 0;
+}
+
+/* Presenter keeps one control surface; the outer decorative card disappears. */
+.technical-controls-motion {
+  margin-top: 28px;
+}
+
+.presenter-console {
+  padding: 22px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+}
+
+.presenter-steps {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgb(35 67 55 / 0.035);
+}
+
+@media (max-width: 1050px) {
+  .technical-card:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .technical-card:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 720px) {
+  .site-list {
+    border-top-color: #dce7e2;
+    border-bottom-color: #dce7e2;
+  }
+
+  .site-record {
+    padding: 15px 0;
+    border-radius: 0;
+  }
+
+  .site-record:hover,
+  .site-record:focus-within {
+    background: transparent;
+  }
+
+  .boundary-note {
+    padding: 14px 0 0;
+  }
+
+  .integrity-metrics > div {
+    padding-inline: 12px;
+  }
+
+  .technical-card-grid {
+    gap: 0;
+    margin-top: 20px;
+  }
+
+  .technical-card {
+    min-height: 0;
+    padding: 20px 0;
+    border-radius: 0;
+  }
+
+  .technical-card:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .technical-card:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .verification-card {
+    padding-right: 0;
+  }
+
+  .verification-card > img,
+  .trust-card > img {
+    border-radius: 10px;
+  }
+
+  .trust-card {
+    padding: 20px 0;
+  }
+
+  .technical-controls-motion {
+    margin-top: 22px;
+  }
+
+  .presenter-console {
+    padding-top: 18px;
+  }
+}
+
+@media (max-width: 460px) {
+  .verification-card {
+    display: block;
+    padding-right: 0;
+  }
+
+  .verification-card > img {
+    width: 100%;
+    height: 112px;
+    margin: 12px 0 0;
+    border-radius: 10px;
+    object-position: center 60%;
+  }
+
+  .trust-card {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-card > img {
+    height: 138px;
+    min-height: 0;
+  }
+
+  .trust-card__copy {
+    padding-top: 16px;
+  }
+}
