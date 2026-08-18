@@ -1,0 +1,119 @@
+name: Frontend dead CSS purge
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+
+permissions:
+  contents: write
+
+jobs:
+  purge:
+    if: ${{ !contains(github.event.head_commit.message, 'Purge proven dead frontend CSS') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - name: Remove selectors proven unused by the component audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          dead = {
+              'incident-meta', 'incident-register', 'incident-register--active', 'incident-register--clear',
+              'integrity-header', 'integrity-header__title', 'integrity-identity', 'integrity-state',
+              'integrity-state--critical', 'integrity-state--positive', 'integrity-state--warning',
+              'ledger-empty', 'operations-grid', 'operations-grid--healthy', 'pipeline-node',
+              'pipeline-node__step', 'quarantine-ledger', 'run-register', 'section-heading',
+              'status-banner', 'status-banner--critical', 'status-banner--neutral',
+              'status-banner--warning', 'status-banner__copy', 'status-banner__meta',
+              'technical-intro__facts', 'timeline-event', 'timeline-event--critical',
+              'timeline-event--warning', 'timeline-register'
+          }
+
+          class_re = re.compile(r'\.([A-Za-z_][A-Za-z0-9_-]*)')
+
+          def matching_brace(text: str, opening: int) -> int:
+              depth = 0
+              quote = None
+              escape = False
+              for i in range(opening, len(text)):
+                  ch = text[i]
+                  if quote:
+                      if escape:
+                          escape = False
+                      elif ch == '\\':
+                          escape = True
+                      elif ch == quote:
+                          quote = None
+                      continue
+                  if ch in {'"', "'"}:
+                      quote = ch
+                  elif ch == '{':
+                      depth += 1
+                  elif ch == '}':
+                      depth -= 1
+                      if depth == 0:
+                          return i
+              raise ValueError('Unbalanced CSS braces')
+
+          def clean_selector_header(header: str):
+              stripped = header.strip()
+              if not stripped or stripped.startswith('@'):
+                  return header
+              selectors = [part.strip() for part in stripped.split(',')]
+              kept = []
+              for selector in selectors:
+                  classes = class_re.findall(selector)
+                  if classes and any(name in dead for name in classes):
+                      continue
+                  kept.append(selector)
+              if not kept:
+                  return None
+              prefix = header[: len(header) - len(header.lstrip())]
+              return prefix + ',\n'.join(kept)
+
+          def clean_css(text: str) -> str:
+              out = []
+              cursor = 0
+              while True:
+                  opening = text.find('{', cursor)
+                  if opening < 0:
+                      out.append(text[cursor:])
+                      break
+                  header_start = cursor
+                  header = text[header_start:opening]
+                  closing = matching_brace(text, opening)
+                  body = text[opening + 1:closing]
+                  stripped = header.strip()
+
+                  if stripped.startswith('@media') or stripped.startswith('@supports') or stripped.startswith('@layer'):
+                      cleaned_body = clean_css(body)
+                      out.append(header + '{' + cleaned_body + '}')
+                  elif stripped.startswith('@'):
+                      out.append(header + '{' + body + '}')
+                  else:
+                      cleaned_header = clean_selector_header(header)
+                      if cleaned_header is not None:
+                          out.append(cleaned_header + '{' + body + '}')
+                  cursor = closing + 1
+              return ''.join(out)
+
+          for path in Path('apps/web/src/styles').glob('*.css'):
+              original = path.read_text()
+              cleaned = clean_css(original)
+              path.write_text(cleaned)
+          PY
+      - name: Remove audit artifacts and commit
+        run: |
+          rm -f apps/web/CSS-AUDIT.tmp
+          git rm .github/workflows/frontend-css-purge.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/styles
+          git add -u apps/web/CSS-AUDIT.tmp
+          git commit -m "Purge proven dead frontend CSS"
+          git push origin HEAD:frontend/reference-led-redesign
