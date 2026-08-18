@@ -29,11 +29,7 @@ export function DirectoryView({
 
   return (
     <main id="main" ref={viewRef} className="page-width directory-view">
-      <section
-        className="directory-intro"
-        aria-labelledby="directory-title"
-        data-motion-section
-      >
+      <section className="directory-intro" aria-labelledby="directory-title" data-motion-section>
         <p className="kicker">
           {city.city.displayName} / {city.city.region}
         </p>
@@ -117,11 +113,7 @@ export function DirectoryView({
         )}
       </section>
 
-      <aside
-        className="boundary-note"
-        aria-label="Important limitations"
-        data-motion-section
-      >
+      <aside className="boundary-note" aria-label="Important limitations" data-motion-section>
         <ShieldCheck size={20} aria-hidden="true" />
         <p>
           <strong>Evidence, not emergency guidance.</strong> CoolPath does not claim that a location
