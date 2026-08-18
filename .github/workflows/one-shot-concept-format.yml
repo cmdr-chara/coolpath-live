@@ -1,0 +1,41 @@
+name: One-shot concept formatter
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+    paths:
+      - .github/workflows/one-shot-concept-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/web/src/components/TechnicalView.tsx apps/web/src/styles/concept.css
+      - run: pnpm exec prettier --check apps/web/src/components/TechnicalView.tsx apps/web/src/styles/concept.css
+      - run: git diff --check
+      - name: Commit formatting and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/one-shot-concept-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/TechnicalView.tsx apps/web/src/styles/concept.css .github/workflows/one-shot-concept-format.yml
+          git commit -m "style: format image-led frontend concept"
+          git push origin HEAD:frontend/reference-led-redesign
