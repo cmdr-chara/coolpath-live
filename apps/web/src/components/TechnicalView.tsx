@@ -1,5 +1,6 @@
 import { ArrowSquareOut, Check, GitDiff, ShieldWarning } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useEntranceMotion } from "../hooks/useEntranceMotion";
 import type { CityResponse, Incident } from "../types";
 import { formatInstant, formatPercent, formatState, sourceHost } from "./format";
 import { statusContent } from "./status-content";
@@ -13,6 +14,7 @@ export function TechnicalView({
   incident: Incident | null;
   controls?: ReactNode;
 }) {
+  const viewRef = useRef<HTMLElement>(null);
   const run = city.latestRun;
   const snapshot = city.snapshot;
   const status = statusContent[city.source.status];
@@ -57,10 +59,12 @@ export function TechnicalView({
     }
   ];
 
+  useEntranceMotion(viewRef);
+
   return (
-    <main id="main" className="technical-view">
+    <main id="main" ref={viewRef} className="technical-view">
       <div className="page-width technical-layout">
-        <section className="integrity-header" aria-labelledby="technical-title">
+        <section className="integrity-header" aria-labelledby="technical-title" data-motion-section>
           <div className="integrity-header__title">
             <p className="kicker">Source integrity / {city.city.displayName}</p>
             <h1 id="technical-title">Source integrity</h1>
@@ -98,26 +102,30 @@ export function TechnicalView({
           </dl>
         </section>
 
-        <section className="integrity-metrics" aria-label="Latest publication metrics">
-          <div>
+        <section
+          className="integrity-metrics"
+          aria-label="Latest publication metrics"
+          data-motion-section
+        >
+          <div data-motion-item>
             <span>Rows returned</span>
             <strong>{run?.recordCount ?? 0}</strong>
           </div>
-          <div>
+          <div data-motion-item>
             <span>Published</span>
             <strong>{snapshot?.sites.length ?? 0}</strong>
           </div>
-          <div>
+          <div data-motion-item>
             <span>Required fields</span>
             <strong>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</strong>
           </div>
-          <div>
+          <div data-motion-item>
             <span>Reason codes</span>
             <strong>{run?.reasonCodes.length ?? 0}</strong>
           </div>
         </section>
 
-        <section className="pipeline-panel" aria-labelledby="pipeline-title">
+        <section className="pipeline-panel" aria-labelledby="pipeline-title" data-motion-section>
           <header className="pipeline-panel__header">
             <div>
               <p className="section-label">Publication boundary</p>
@@ -130,7 +138,11 @@ export function TechnicalView({
 
           <ol className="pipeline-strip" aria-label="Source publication pipeline">
             {pipeline.map((step, index) => (
-              <li key={step.key} className={`pipeline-step pipeline-step--${step.tone}`}>
+              <li
+                key={step.key}
+                className={`pipeline-step pipeline-step--${step.tone}`}
+                data-motion-item
+              >
                 <span className="pipeline-step__marker" aria-hidden="true">
                   {step.tone === "failed" ? "!" : step.tone === "passed" ? "✓" : index + 1}
                 </span>
@@ -161,9 +173,13 @@ export function TechnicalView({
           </aside>
         </section>
 
-        {controls}
+        {controls ? (
+          <div className="technical-controls-motion" data-motion-section>
+            {controls}
+          </div>
+        ) : null}
 
-        <div className="operations-grid">
+        <div className="operations-grid" data-motion-section>
           <section
             className={`incident-register ${incident ? "incident-register--active" : ""}`}
             aria-labelledby="incident-title"
@@ -245,7 +261,7 @@ export function TechnicalView({
         </div>
 
         {incident?.healDiff.length ? (
-          <section className="repair-review" aria-labelledby="repair-title">
+          <section className="repair-review" aria-labelledby="repair-title" data-motion-section>
             <header className="ledger-title">
               <GitDiff size={20} aria-hidden="true" />
               <div>
@@ -280,7 +296,7 @@ export function TechnicalView({
           </section>
         ) : null}
 
-        <section className="timeline-register" aria-labelledby="timeline-title">
+        <section className="timeline-register" aria-labelledby="timeline-title" data-motion-section>
           <header>
             <span>Activity</span>
             <h2 id="timeline-title">Publication history</h2>
