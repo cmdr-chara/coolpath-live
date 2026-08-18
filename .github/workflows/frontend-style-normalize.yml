@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   normalize:
-    if: ${{ github.head_ref == 'frontend/reference-led-redesign' && !contains(github.event.pull_request.head.sha, 'never') }}
+    if: ${{ github.head_ref == 'frontend/reference-led-redesign' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,11 +23,19 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Remove empty media/support blocks
+      - name: Repair purge artifact and remove empty media/support blocks
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
+
+          interaction = Path('apps/web/src/styles/interaction.css')
+          text = interaction.read_text().replace(
+              '/* Healthy state should read as a compact status{\n  align-items: start;\n}\n\n',
+              ''
+          )
+          interaction.write_text(text)
+
           pattern = re.compile(r'(?ms)^\s*@(media|supports)\s*[^\{]+\{\s*\}\s*')
           for path in Path('apps/web/src/styles').glob('*.css'):
               text = path.read_text()
