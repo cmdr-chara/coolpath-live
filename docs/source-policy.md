@@ -40,14 +40,14 @@ The verified 2026-08-17 baseline received 25 bounded first-page provider records
 
 Coverage metrics are operational evidence, not a completeness claim. The normalizer and canonical validator use these definitions:
 
-| Metric                               | Counting rule                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `providerRecordsReceived`            | Every top-level row supplied by the configured collector for the bounded run                                                    |
-| `normalizedRecordsAccepted`          | Rows that pass source parsing, location filtering, HTTPS/origin checks and exact-duplicate removal before canonical validation  |
-| `recordsFilteredNotLocations`        | Valid source rows whose service text does not identify a cooling-center location                                                |
-| `exactDuplicatesRemoved`             | Later rows with the same stable normalized name-and-address identity as an already accepted row                                 |
-| `recordsRejectedByValidation`        | Source-schema/evidence rejects plus later canonical-contract rejects; an item rejected at the source boundary is not counted again |
-| `recordsQuarantined`                 | Canonically valid sites retained in a candidate that is withheld because the complete candidate is not publishable              |
+| Metric                        | Counting rule                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `providerRecordsReceived`     | Every top-level row supplied by the configured collector for the bounded run                                                       |
+| `normalizedRecordsAccepted`   | Rows that pass source parsing, location filtering, HTTPS/origin checks and exact-duplicate removal before canonical validation     |
+| `recordsFilteredNotLocations` | Valid source rows whose service text does not identify a cooling-center location                                                   |
+| `exactDuplicatesRemoved`      | Later rows with the same stable normalized name-and-address identity as an already accepted row                                    |
+| `recordsRejectedByValidation` | Source-schema/evidence rejects plus later canonical-contract rejects; an item rejected at the source boundary is not counted again |
+| `recordsQuarantined`          | Canonically valid sites retained in a candidate that is withheld because the complete candidate is not publishable                 |
 
 The first four result categories are applied in order, so a provider row is accepted, filtered, de-duplicated or source-rejected once. Canonical rejection occurs only for rows that reached canonical validation. `recordsQuarantined` is intentionally an outcome measure rather than another mutually exclusive input-row category: it can overlap `normalizedRecordsAccepted` when otherwise valid sites are held back because another record or candidate-level anomaly prevents publication.
 

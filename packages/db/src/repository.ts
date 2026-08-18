@@ -1,13 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type {
-  City,
-  CoolingSite,
-  Source,
-  SourceState,
-  ValidationSummary
-} from "@coolpath/domain";
+import type { City, CoolingSite, Source, SourceState, ValidationSummary } from "@coolpath/domain";
 import Database from "better-sqlite3";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -206,11 +200,7 @@ export class CoolPathRepository {
     this.db.update(sources).set({ currentState: state }).where(eq(sources.id, sourceId)).run();
   }
 
-  markSourceStale(input: {
-    sourceId: string;
-    occurredAt: string;
-    observedAt: string;
-  }): boolean {
+  markSourceStale(input: { sourceId: string; occurredAt: string; observedAt: string }): boolean {
     return this.db.transaction((transaction) => {
       const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
       if (!source || source.currentState === "STALE") return false;
@@ -358,11 +348,7 @@ export class CoolPathRepository {
       if (!candidate || candidate.runId !== input.runId) {
         throw new Error("Published snapshot must belong to the proving run");
       }
-      const source = transaction
-        .select()
-        .from(sources)
-        .where(eq(sources.id, input.sourceId))
-        .get();
+      const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
       if (!source || candidate.status !== "candidate") {
         throw new Error("Only a candidate snapshot belonging to the source can be promoted");
       }

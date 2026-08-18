@@ -52,7 +52,8 @@ function stableForHash(value: unknown): unknown {
 
 function semanticEtag(data: unknown): string {
   const serialized = JSON.stringify(stableForHash(data));
-  if (serialized === undefined) throw new Error("Semantic representations must be JSON serializable");
+  if (serialized === undefined)
+    throw new Error("Semantic representations must be JSON serializable");
   const hash = createHash("sha256").update(serialized).digest("hex");
   return `"${hash}"`;
 }

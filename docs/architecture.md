@@ -6,13 +6,13 @@ CoolPath has one trust boundary: untrusted collector output cannot become public
 
 ## Components
 
-| Area                       | Responsibility                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Area                       | Responsibility                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/domain`          | Canonical data contract, validation, coverage accounting, transport classification, freshness checks and source-state transitions |
 | `packages/source-adapters` | Scraper Studio boundary, real and mock clients, complete-operation timeouts, field-specific healing prompts and normalizers       |
-| `packages/db`              | SQLite WAL storage, authoritative SQL migrations, candidate snapshots, atomic publication, incidents and bounded timelines       |
-| `apps/api`                 | Allowlisted ingestion, per-source coordination, freshness reconciliation, semantic caching, probes and operator actions          |
-| `apps/web`                 | Civic evidence ledger, source-state rendering, evidence drawer and recovery review UI                                           |
+| `packages/db`              | SQLite WAL storage, authoritative SQL migrations, candidate snapshots, atomic publication, incidents and bounded timelines        |
+| `apps/api`                 | Allowlisted ingestion, per-source coordination, freshness reconciliation, semantic caching, probes and operator actions           |
+| `apps/web`                 | Civic evidence ledger, source-state rendering, evidence drawer and recovery review UI                                             |
 
 ## Publication flow
 
@@ -37,17 +37,17 @@ An ordinary passing check after an incident records `HEALTHY` and an ordinary-re
 
 ## Source state machine
 
-| State            | Public behavior                                                              |
-| ---------------- | ---------------------------------------------------------------------------- |
+| State            | Public behavior                                                               |
+| ---------------- | ----------------------------------------------------------------------------- |
 | `UNINITIALIZED`  | No list; source-page link only                                                |
-| `CHECKING`       | Keep any last trusted report protected during the check                      |
-| `HEALTHY`        | Show current verified data from the published snapshot                       |
-| `DEGRADED`       | Show the last trusted report while it remains within TTL                     |
-| `STALE`          | Mark the last trusted report historical and remove current wording           |
+| `CHECKING`       | Keep any last trusted report protected during the check                       |
+| `HEALTHY`        | Show current verified data from the published snapshot                        |
+| `DEGRADED`       | Show the last trusted report while it remains within TTL                      |
+| `STALE`          | Mark the last trusted report historical and remove current wording            |
 | `BROKEN`         | Never publish the failed candidate; retain a last trusted snapshot if present |
-| `HEALING`        | Keep the trusted report protected while a repair is prepared                 |
-| `REVIEW_PENDING` | Display the preview; do not apply changes automatically                      |
-| `RECOVERED`      | Show the newly validated and published recovery snapshot                     |
+| `HEALING`        | Keep the trusted report protected while a repair is prepared                  |
+| `REVIEW_PENDING` | Display the preview; do not apply changes automatically                       |
+| `RECOVERED`      | Show the newly validated and published recovery snapshot                      |
 
 Transport failures are inconclusive. A 403, 429, timeout, DNS failure or temporary provider failure does not prove layout drift.
 

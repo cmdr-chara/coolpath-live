@@ -8,7 +8,6 @@ import {
   type CollectorRunInput,
   type CollectorRunResult,
   type CollectorStatus,
-  type HealRequest,
   type HealResult
 } from "@coolpath/source-adapters";
 import {
@@ -194,9 +193,7 @@ describe("per-source operation coordination", () => {
     const pending = deferred<CollectorRunResult>();
     const client = new QueueClient();
     client.enqueue(() => pending.promise);
-    client.enqueue((input) =>
-      Promise.resolve(healthyResult(input, "2026-08-17T12:01:00.000Z"))
-    );
+    client.enqueue((input) => Promise.resolve(healthyResult(input, "2026-08-17T12:01:00.000Z")));
     const service = new IngestionService(repository, client);
 
     const first = service.runSource(DEMO_SOURCE_ID);
@@ -222,9 +219,7 @@ describe("per-source operation coordination", () => {
     const failure = new TypeError("fetch failed");
     const client = new QueueClient();
     client.enqueue(() => Promise.reject(failure));
-    client.enqueue((input) =>
-      Promise.resolve(healthyResult(input, "2026-08-17T12:05:00.000Z"))
-    );
+    client.enqueue((input) => Promise.resolve(healthyResult(input, "2026-08-17T12:05:00.000Z")));
     const service = new IngestionService(repository, client);
 
     await expect(service.runSource(DEMO_SOURCE_ID)).rejects.toBe(failure);
@@ -242,7 +237,9 @@ describe("per-source operation coordination", () => {
     const client = new ClockedHealthyClient(() => new Date("2026-08-17T12:00:00.000Z"));
     const service = new IngestionService(repository, client);
 
-    await expect(service.runSource(DEMO_SOURCE_ID)).rejects.toThrow("simulated persistence failure");
+    await expect(service.runSource(DEMO_SOURCE_ID)).rejects.toThrow(
+      "simulated persistence failure"
+    );
     await expect(service.runSource(DEMO_SOURCE_ID)).resolves.toMatchObject({
       validation: { disposition: "publishable" }
     });
@@ -258,7 +255,7 @@ describe("per-source operation coordination", () => {
 
     const pendingHeal = deferred<HealResult>();
     class DelayedHealClient extends MockScraperStudioClient {
-      override requestHeal(_input: HealRequest): Promise<HealResult> {
+      override requestHeal(): Promise<HealResult> {
         return pendingHeal.promise;
       }
     }
@@ -384,10 +381,10 @@ describe("incident lifecycle correctness", () => {
     const current = await service.decideHeal(DEMO_SOURCE_ID, true);
 
     expect(current).toBeNull();
-    expect(repository.getIncident(incident.id)).toMatchObject({
-      healState: "approved",
-      resolvedByRunId: expect.any(String)
-    });
+    const resolvedIncident = repository.getIncident(incident.id);
+    if (!resolvedIncident) throw new Error("Expected resolved incident");
+    expect(resolvedIncident.healState).toBe("approved");
+    expect(resolvedIncident.resolvedByRunId).toBeTruthy();
     expect(repository.getSource(DEMO_SOURCE_ID)?.currentState).toBe("RECOVERED");
     expect(repository.listTimeline(DEMO_SOURCE_ID, 100)[0]).toMatchObject({ kind: "recovered" });
   });

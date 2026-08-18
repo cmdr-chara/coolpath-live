@@ -147,7 +147,10 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ prompt: input.prompt, custom_input: [{ url: input.canonicalUrl }] })
+          body: JSON.stringify({
+            prompt: input.prompt,
+            custom_input: [{ url: input.canonicalUrl }]
+          })
         },
         signal
       );
@@ -194,7 +197,11 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
     for (const controller of this.activeControllers) controller.abort(reason);
   }
 
-  private async call(path: string | URL, init: RequestInit, signal: AbortSignal): Promise<Response> {
+  private async call(
+    path: string | URL,
+    init: RequestInit,
+    signal: AbortSignal
+  ): Promise<Response> {
     throwIfAborted(signal);
     const response = await this.request(
       typeof path === "string" ? new URL(path, this.apiBaseUrl) : path,

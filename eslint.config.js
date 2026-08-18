@@ -29,13 +29,6 @@ export default tseslint.config(
     }
   },
   {
-    files: ["apps/api/src/ingestion-service.test.ts"],
-    rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-unsafe-assignment": "off"
-    }
-  },
-  {
     files: ["**/*.config.{js,ts,mjs}", "**/scripts/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",

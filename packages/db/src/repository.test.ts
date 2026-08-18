@@ -254,7 +254,8 @@ describe("migration discipline", () => {
   const directories: string[] = [];
 
   afterEach(() => {
-    for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+    for (const directory of directories.splice(0))
+      rmSync(directory, { recursive: true, force: true });
   });
 
   it("initializes the same empty database twice without failure", () => {

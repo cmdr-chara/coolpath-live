@@ -1,0 +1,3 @@
+# This backend-only branch preserves the merged frontend byte-for-byte.
+apps/web/src/App.tsx
+docs/frontend-redesign.md
