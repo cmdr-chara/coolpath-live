@@ -1,0 +1,41 @@
+name: Frontend CSS dead-code audit
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find unreferenced CSS classes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          source = '\n'.join(
+              p.read_text(errors='ignore')
+              for p in Path('apps/web/src').rglob('*')
+              if p.suffix in {'.tsx', '.ts'}
+          )
+          css = '\n'.join(p.read_text(errors='ignore') for p in Path('apps/web/src/styles').glob('*.css'))
+          classes = sorted(set(re.findall(r'\.([A-Za-z_][A-Za-z0-9_-]*)', css)))
+
+          def referenced(name: str) -> bool:
+              if name in source:
+                  return True
+              if '--' in name and name.split('--', 1)[0] + '--' in source:
+                  return True
+              return False
+
+          dead = [name for name in classes if not referenced(name)]
+          print(f'CSS classes: {len(classes)}')
+          print(f'Unreferenced candidates: {len(dead)}')
+          for name in dead:
+              print(name)
+          PY
