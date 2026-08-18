@@ -197,9 +197,10 @@ describe("Bright Data Scraper Studio client", () => {
       collectorId: "collector-1",
       canonicalUrl: "https://city.example/cooling"
     });
+    const rejection = expect(operation).rejects.toMatchObject({ name: "AbortError" });
 
     await vi.advanceTimersByTimeAsync(20);
-    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    await rejection;
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -221,9 +222,10 @@ describe("Bright Data Scraper Studio client", () => {
       collectorId: "collector-1",
       canonicalUrl: "https://city.example/cooling"
     });
+    const rejection = expect(operation).rejects.toMatchObject({ name: "AbortError" });
 
     await vi.advanceTimersByTimeAsync(20);
-    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    await rejection;
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -240,9 +242,10 @@ describe("Bright Data Scraper Studio client", () => {
       jobId: "heal-1",
       approve: true
     });
+    const rejection = expect(operation).rejects.toMatchObject({ name: "AbortError" });
 
     await vi.advanceTimersByTimeAsync(20);
-    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    await rejection;
     expect(vi.getTimerCount()).toBe(0);
   });
 
@@ -258,14 +261,15 @@ describe("Bright Data Scraper Studio client", () => {
       collectorId: "collector-1",
       canonicalUrl: "https://city.example/cooling"
     });
+    const rejection = expect(operation).rejects.toMatchObject({
+      name: "AbortError",
+      message: "Bright Data operation stopped during shutdown"
+    });
     await vi.advanceTimersByTimeAsync(0);
 
     client.close();
 
-    await expect(operation).rejects.toMatchObject({
-      name: "AbortError",
-      message: "Bright Data operation stopped during shutdown"
-    });
+    await rejection;
     expect(vi.getTimerCount()).toBe(0);
   });
 
