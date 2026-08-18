@@ -54,6 +54,8 @@ export function registerDemoRoutes(
     noStore(reply);
     const { approve } = z.object({ approve: z.boolean() }).parse(request.body);
     const incident = await ingestion.decideHeal(DEMO_SOURCE_ID, approve);
-    return reply.send(envelope({ approved: approve, recovered: approve && incident === null }, now));
+    return reply.send(
+      envelope({ approved: approve, recovered: approve && incident === null }, now)
+    );
   });
 }

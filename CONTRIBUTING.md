@@ -37,14 +37,14 @@ git diff --check
 
 ## Module boundaries
 
-| Area | Owns | Does not own |
-| --- | --- | --- |
-| `apps/web` | rendering, interaction, query invalidation and accessible presentation | source validation, credentials or publication decisions |
-| `apps/api` | HTTP composition, authentication, probes, orchestration and safe errors | canonical data rules or raw SQL schema history |
-| `packages/domain` | schemas, quality policy, freshness and state transitions | HTTP, persistence or provider transport |
-| `packages/source-adapters` | provider transport and source-specific normalization | publication or public response shaping |
-| `packages/db` | migrations, persisted evidence and transactional publication | provider calls or UI behavior |
-| `packages/test-fixtures` | deterministic synthetic evidence used by tests and demo mode | production source records |
+| Area                       | Owns                                                                    | Does not own                                            |
+| -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| `apps/web`                 | rendering, interaction, query invalidation and accessible presentation  | source validation, credentials or publication decisions |
+| `apps/api`                 | HTTP composition, authentication, probes, orchestration and safe errors | canonical data rules or raw SQL schema history          |
+| `packages/domain`          | schemas, quality policy, freshness and state transitions                | HTTP, persistence or provider transport                 |
+| `packages/source-adapters` | provider transport and source-specific normalization                    | publication or public response shaping                  |
+| `packages/db`              | migrations, persisted evidence and transactional publication            | provider calls or UI behavior                           |
+| `packages/test-fixtures`   | deterministic synthetic evidence used by tests and demo mode            | production source records                               |
 
 Within the API, `app.ts` assembles dependencies. HTTP response helpers, error mapping and route groups live in focused modules. Business lifecycle logic belongs in `IngestionService`; persistence invariants belong in `CoolPathRepository`.
 

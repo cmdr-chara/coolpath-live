@@ -26,16 +26,16 @@ The redesign borrows individual decisions rather than copying a whole product:
 
 ### Color roles
 
-| Token | Value | Role |
-| --- | --- | --- |
-| Paper | `#f4f0e7` | deterministic page background |
-| Ink | `#16221e` | primary text |
-| Muted | `#59635e` | supporting text |
-| Verified green | `#1b604b` | passing/current source state |
-| Review amber | `#935b16` | stale, degraded, healing and review states |
-| Quarantine red | `#963e35` | contract failure and blocked publication |
-| Focus blue | `#005ea8` | keyboard focus only |
-| Technical forest | `#10251f` | publication pipeline board |
+| Token            | Value     | Role                                       |
+| ---------------- | --------- | ------------------------------------------ |
+| Paper            | `#f4f0e7` | deterministic page background              |
+| Ink              | `#16221e` | primary text                               |
+| Muted            | `#59635e` | supporting text                            |
+| Verified green   | `#1b604b` | passing/current source state               |
+| Review amber     | `#935b16` | stale, degraded, healing and review states |
+| Quarantine red   | `#963e35` | contract failure and blocked publication   |
+| Focus blue       | `#005ea8` | keyboard focus only                        |
+| Technical forest | `#10251f` | publication pipeline board                 |
 
 The theme is fixed and does not change with operating-system dark mode.
 
@@ -49,29 +49,29 @@ Motion is limited to the evidence drawer, navigation underline, action hover and
 
 ## Audit findings and resolutions
 
-| Impact | Finding | Resolution |
-| --- | --- | --- |
-| Critical | The frontend requested `/api/cities/demo-city` unconditionally, while real mode seeds the `philadelphia` slug. | The client now discovers `/api/cities`, honors optional `VITE_CITY_SLUG`, otherwise prefers a real source and then loads the selected slug. |
-| High | A 720px marketing hero and decorative signal field delayed the first record, especially on mobile. | Replaced with a compact city/provenance ledger. The first location is asserted inside a 375×812 initial viewport. |
-| High | Copy repeatedly described data as “official,” “municipal” or issued by an authority, which is inaccurate for nonprofit Pennsylvania 211. Generic “hours” labels could also misdescribe a service statement or activation period. | Standardized source language and added claim-aware temporal labels for hours, periods, statements and unstated timing. |
-| High | `BROKEN` rendering discarded all sites even when a protected published snapshot existed. | Records render whenever a published snapshot exists; only the empty snapshot state hides the list. |
-| High | Public/technical navigation existed only in React state and was not shareable or restorable with browser history. | Replaced with URL-backed links using `?view=technical`, `aria-current` and `popstate` handling. |
-| High | The controlled Radix dialog had no registered trigger, so focus restoration was not explicit. | The opening button is stored and restored through `onCloseAutoFocus`; Radix continues to provide the focus trap and Escape behavior. |
-| Medium | Status language and current-versus-historical logic were distributed across components. | Added one typed `status-content.ts` source used by the banner, records, drawer and pipeline. |
-| Medium | The technical flow only emphasized quarantine during an incident and underplayed the protected publication pointer. | Quarantine is now a permanent branch with active/idle states; `publishedSnapshotId` is named in the core flow. |
-| Medium | App composition mixed data loading, navigation, hero art, public records, presenter controls and technical rendering. | Split into `DirectoryView`, `TechnicalView`, `PresenterControls`, `AppHeader`, shared formatting and shared state content. |
-| Medium | API errors discarded server-safe messages and offered little state-specific context. | Added a typed request error, safe response-message parsing, retry UI and a bounded incident-detail fallback. |
-| Low | GSAP was used for broad reveal motion rather than product state. | Removed GSAP-driven UI code. Package declarations are retained in this branch until the lockfile can be regenerated in the repository runtime. |
+| Impact   | Finding                                                                                                                                                                                                                          | Resolution                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Critical | The frontend requested `/api/cities/demo-city` unconditionally, while real mode seeds the `philadelphia` slug.                                                                                                                   | The client now discovers `/api/cities`, honors optional `VITE_CITY_SLUG`, otherwise prefers a real source and then loads the selected slug.    |
+| High     | A 720px marketing hero and decorative signal field delayed the first record, especially on mobile.                                                                                                                               | Replaced with a compact city/provenance ledger. The first location is asserted inside a 375×812 initial viewport.                              |
+| High     | Copy repeatedly described data as “official,” “municipal” or issued by an authority, which is inaccurate for nonprofit Pennsylvania 211. Generic “hours” labels could also misdescribe a service statement or activation period. | Standardized source language and added claim-aware temporal labels for hours, periods, statements and unstated timing.                         |
+| High     | `BROKEN` rendering discarded all sites even when a protected published snapshot existed.                                                                                                                                         | Records render whenever a published snapshot exists; only the empty snapshot state hides the list.                                             |
+| High     | Public/technical navigation existed only in React state and was not shareable or restorable with browser history.                                                                                                                | Replaced with URL-backed links using `?view=technical`, `aria-current` and `popstate` handling.                                                |
+| High     | The controlled Radix dialog had no registered trigger, so focus restoration was not explicit.                                                                                                                                    | The opening button is stored and restored through `onCloseAutoFocus`; Radix continues to provide the focus trap and Escape behavior.           |
+| Medium   | Status language and current-versus-historical logic were distributed across components.                                                                                                                                          | Added one typed `status-content.ts` source used by the banner, records, drawer and pipeline.                                                   |
+| Medium   | The technical flow only emphasized quarantine during an incident and underplayed the protected publication pointer.                                                                                                              | Quarantine is now a permanent branch with active/idle states; `publishedSnapshotId` is named in the core flow.                                 |
+| Medium   | App composition mixed data loading, navigation, hero art, public records, presenter controls and technical rendering.                                                                                                            | Split into `DirectoryView`, `TechnicalView`, `PresenterControls`, `AppHeader`, shared formatting and shared state content.                     |
+| Medium   | API errors discarded server-safe messages and offered little state-specific context.                                                                                                                                             | Added a typed request error, safe response-message parsing, retry UI and a bounded incident-detail fallback.                                   |
+| Low      | GSAP was used for broad reveal motion rather than product state.                                                                                                                                                                 | Removed GSAP-driven UI code. Package declarations are retained in this branch until the lockfile can be regenerated in the repository runtime. |
 
 ## State language
 
-| Source state | Public label | Public behavior |
-| --- | --- | --- |
-| `HEALTHY` | Current verified data | show the published snapshot |
-| `RECOVERED` | Current verified data | show the newly re-verified snapshot |
-| `DEGRADED`, `HEALING`, `REVIEW_PENDING`, `CHECKING`, `BROKEN` | Last trusted report | show a protected snapshot when one exists |
-| `STALE` | Historical report | show explicit historical wording |
-| `UNINITIALIZED` or no snapshot | No verified report | show an empty state and source-page path |
+| Source state                                                  | Public label          | Public behavior                           |
+| ------------------------------------------------------------- | --------------------- | ----------------------------------------- |
+| `HEALTHY`                                                     | Current verified data | show the published snapshot               |
+| `RECOVERED`                                                   | Current verified data | show the newly re-verified snapshot       |
+| `DEGRADED`, `HEALING`, `REVIEW_PENDING`, `CHECKING`, `BROKEN` | Last trusted report   | show a protected snapshot when one exists |
+| `STALE`                                                       | Historical report     | show explicit historical wording          |
+| `UNINITIALIZED` or no snapshot                                | No verified report    | show an empty state and source-page path  |
 
 No state claims a facility is open now, safe, nearest, currently available, medically appropriate or safely reachable.
 

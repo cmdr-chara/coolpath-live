@@ -178,10 +178,7 @@ function reconcileBackgroundFailure(
       );
     }
   } catch (stateError) {
-    app.log.warn(
-      { err: stateError, sourceId },
-      "background source state could not be updated"
-    );
+    app.log.warn({ err: stateError, sourceId }, "background source state could not be updated");
   }
   app.log.warn({ err: error, sourceId }, "background source check failed");
 }

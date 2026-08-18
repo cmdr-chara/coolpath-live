@@ -30,9 +30,7 @@ export function registerOperatorRoutes(
     { preHandler: requireOperator },
     async (request, reply) => {
       noStore(reply);
-      const { sourceId } = z
-        .object({ sourceId: z.string().min(1).max(80) })
-        .parse(request.params);
+      const { sourceId } = z.object({ sourceId: z.string().min(1).max(80) }).parse(request.params);
       const result = await ingestion.runSource(sourceId);
       return reply.send(
         envelope(
@@ -54,9 +52,7 @@ export function registerOperatorRoutes(
     { preHandler: requireOperator },
     async (request, reply) => {
       noStore(reply);
-      const { sourceId } = z
-        .object({ sourceId: z.string().min(1).max(80) })
-        .parse(request.params);
+      const { sourceId } = z.object({ sourceId: z.string().min(1).max(80) }).parse(request.params);
       return reply.send(envelope(await ingestion.requestHeal(sourceId), now));
     }
   );
@@ -66,9 +62,7 @@ export function registerOperatorRoutes(
     { preHandler: requireOperator },
     async (request, reply) => {
       noStore(reply);
-      const { sourceId } = z
-        .object({ sourceId: z.string().min(1).max(80) })
-        .parse(request.params);
+      const { sourceId } = z.object({ sourceId: z.string().min(1).max(80) }).parse(request.params);
       const { approve } = z.object({ approve: z.boolean() }).parse(request.body);
       const incident = await ingestion.decideHeal(sourceId, approve);
       return reply.send(
