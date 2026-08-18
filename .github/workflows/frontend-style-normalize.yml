@@ -1,15 +1,14 @@
 name: Frontend style normalization
 
 on:
-  push:
-    branches: [frontend/reference-led-redesign]
+  pull_request:
 
 permissions:
   contents: write
 
 jobs:
   normalize:
-    if: ${{ !contains(github.event.head_commit.message, 'Normalize cleaned frontend styles') }}
+    if: ${{ github.head_ref == 'frontend/reference-led-redesign' && !contains(github.event.pull_request.head.sha, 'never') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
