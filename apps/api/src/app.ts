@@ -51,7 +51,9 @@ function stableForHash(value: unknown): unknown {
 }
 
 function semanticEtag(data: unknown): string {
-  const hash = createHash("sha256").update(JSON.stringify(stableForHash(data))).digest("hex");
+  const serialized = JSON.stringify(stableForHash(data));
+  if (serialized === undefined) throw new Error("Semantic representations must be JSON serializable");
+  const hash = createHash("sha256").update(serialized).digest("hex");
   return `"${hash}"`;
 }
 
@@ -451,44 +453,53 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
     if (ownsRepository) repository.close();
   });
 
-  if (config.COOLPATH_MODE === "real") {
-    seedPrimarySourceConfiguration(repository, primaryCollectorId);
-  } else {
-    seedSourceConfiguration(repository);
-  }
+  try {
+    if (config.COOLPATH_MODE === "real") {
+      seedPrimarySourceConfiguration(repository, primaryCollectorId);
+    } else {
+      seedSourceConfiguration(repository);
+    }
 
-  ingestion.reconcileFreshness(initialSourceId);
+    ingestion.reconcileFreshness(initialSourceId);
 
-  if (config.COOLPATH_MODE === "mock" && !repository.getPublishedSnapshot(initialSourceId)) {
-    await ingestion.runSource(initialSourceId);
-  }
+    if (config.COOLPATH_MODE === "mock" && !repository.getPublishedSnapshot(initialSourceId)) {
+      await ingestion.runSource(initialSourceId);
+    }
 
-  if (
-    config.COOLPATH_MODE === "real" &&
-    config.AUTO_START_REAL_CHECK &&
-    !repository.getPublishedSnapshot(initialSourceId)
-  ) {
-    backgroundCheck = Promise.resolve()
-      .then(() => ingestion.runSource(initialSourceId))
-      .then(() => undefined)
-      .catch((error: unknown) => {
-        try {
-          const source = repository.getSource(initialSourceId);
-          if (source?.currentState === "CHECKING") {
-            repository.setSourceState(
-              initialSourceId,
-              repository.getPublishedSnapshot(initialSourceId) ? "DEGRADED" : "BROKEN"
+    if (
+      config.COOLPATH_MODE === "real" &&
+      config.AUTO_START_REAL_CHECK &&
+      !repository.getPublishedSnapshot(initialSourceId)
+    ) {
+      backgroundCheck = Promise.resolve()
+        .then(() => ingestion.runSource(initialSourceId))
+        .then(() => undefined)
+        .catch((error: unknown) => {
+          try {
+            const source = repository.getSource(initialSourceId);
+            if (source?.currentState === "CHECKING") {
+              repository.setSourceState(
+                initialSourceId,
+                repository.getPublishedSnapshot(initialSourceId) ? "DEGRADED" : "BROKEN"
+              );
+            }
+          } catch (stateError) {
+            app.log.warn(
+              { err: stateError, sourceId: initialSourceId },
+              "background source state could not be updated"
             );
           }
-        } catch (stateError) {
-          app.log.warn(
-            { err: stateError, sourceId: initialSourceId },
-            "background source state could not be updated"
-          );
-        }
-        app.log.warn({ err: error, sourceId: initialSourceId }, "background source check failed");
-      });
-  }
+          app.log.warn({ err: error, sourceId: initialSourceId }, "background source check failed");
+        });
+    }
 
-  return app;
+    return app;
+  } catch (error) {
+    try {
+      await app.close();
+    } catch (closeError) {
+      app.log.warn({ err: closeError }, "startup cleanup failed");
+    }
+    throw error;
+  }
 }
