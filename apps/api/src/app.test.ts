@@ -382,6 +382,7 @@ describe("public API and recovery demo", () => {
   it("serves liveness during a pending real startup check", async () => {
     const client = new ControlledPa211Client();
     repository = new CoolPathRepository(":memory:");
+    const activeRepository = repository;
     app = await buildApp({
       config: realConfig({ AUTO_START_REAL_CHECK: true }),
       repository,
@@ -394,11 +395,11 @@ describe("public API and recovery demo", () => {
     const pendingReadiness = await app.inject({ method: "GET", url: "/readyz" });
     expect(health.statusCode).toBe(200);
     expect(pendingReadiness.statusCode).toBe(503);
-    expect(repository.getSource(PRIMARY_SOURCE_ID)?.currentState).toBe("CHECKING");
+    expect(activeRepository.getSource(PRIMARY_SOURCE_ID)?.currentState).toBe("CHECKING");
 
     client.resolveFirst();
     await waitForCondition(
-      () => repository?.getPublishedSnapshot(PRIMARY_SOURCE_ID) !== null,
+      () => activeRepository.getPublishedSnapshot(PRIMARY_SOURCE_ID) !== null,
       "Background collector result was not published"
     );
     const ready = await app.inject({ method: "GET", url: "/readyz" });
@@ -409,6 +410,7 @@ describe("public API and recovery demo", () => {
   it("catches background failure and permits a later recovery check", async () => {
     const client = new RejectOncePa211Client();
     repository = new CoolPathRepository(":memory:");
+    const activeRepository = repository;
     const operatorToken = "operator-token-with-at-least-32-characters";
     app = await buildApp({
       config: realConfig({ AUTO_START_REAL_CHECK: true, OPERATOR_API_TOKEN: operatorToken }),
@@ -417,7 +419,7 @@ describe("public API and recovery demo", () => {
       now: () => new Date("2026-08-17T12:00:00.000Z")
     });
     await waitForCondition(
-      () => repository?.getLatestRun(PRIMARY_SOURCE_ID) !== null,
+      () => activeRepository.getLatestRun(PRIMARY_SOURCE_ID) !== null,
       "Failed background run was not recorded"
     );
 
@@ -425,8 +427,8 @@ describe("public API and recovery demo", () => {
     const unavailable = await app.inject({ method: "GET", url: "/readyz" });
     expect(health.statusCode).toBe(200);
     expect(unavailable.statusCode).toBe(503);
-    expect(repository.getSource(PRIMARY_SOURCE_ID)?.currentState).toBe("BROKEN");
-    expect(repository.getLatestRun(PRIMARY_SOURCE_ID)?.outcome).toBe("inconclusive");
+    expect(activeRepository.getSource(PRIMARY_SOURCE_ID)?.currentState).toBe("BROKEN");
+    expect(activeRepository.getLatestRun(PRIMARY_SOURCE_ID)?.outcome).toBe("inconclusive");
 
     const recovered = await app.inject({
       method: "POST",
@@ -545,6 +547,33 @@ describe("public API and recovery demo", () => {
     expect(philadelphia.statusCode).toBe(200);
     expect(philadelphia.json<CityPayload>().data.snapshot?.sites).toHaveLength(1);
     expect((await app.inject({ method: "GET", url: "/readyz" })).statusCode).toBe(200);
+  });
+
+  it("reports an unusable database without failing process liveness", async () => {
+    repository = new CoolPathRepository(":memory:");
+    const activeRepository = repository;
+    app = await buildApp({
+      config: getConfig({ NODE_ENV: "test", DATABASE_URL: ":memory:", COOLPATH_MODE: "mock" }),
+      repository,
+      scraperClient: new MockScraperStudioClient(),
+      now: () => new Date("2026-08-17T12:00:00.000Z")
+    });
+    activeRepository.close();
+
+    const health = await app.inject({ method: "GET", url: "/healthz" });
+    const readiness = await app.inject({ method: "GET", url: "/readyz" });
+    expect(health.statusCode).toBe(200);
+    expect(readiness.statusCode).toBe(503);
+    expect(readiness.json<ReadinessPayload>().data).toEqual({
+      status: "not_ready",
+      checks: {
+        database: "unavailable",
+        source: "unavailable",
+        trustedSnapshot: "unavailable"
+      },
+      sourceState: null,
+      mode: "mock"
+    });
   });
 
   it("returns sanitized client errors and never exposes configured secrets", async () => {
