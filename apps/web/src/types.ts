@@ -1,49 +1,22 @@
-export type SourceState =
-  | "UNINITIALIZED"
-  | "CHECKING"
-  | "HEALTHY"
-  | "DEGRADED"
-  | "STALE"
-  | "BROKEN"
-  | "HEALING"
-  | "REVIEW_PENDING"
-  | "RECOVERED";
+import type {
+  CoolingSite,
+  ExplicitClaim,
+  QualityDisposition,
+  ReasonCode,
+  SnapshotStatus,
+  SourceState,
+  TemporalClaim
+} from "@coolpath/domain";
 
-export interface ExplicitClaim {
-  kind: "accessibility" | "amenity" | "other";
-  label: string;
-  evidenceText: string;
-  sourceUrl: string;
-  evidenceLocator?: string;
-}
-
-export type TemporalClaim =
-  | {
-      kind: "weekly_windows";
-      timezone: string;
-      windows: Array<{ day: string; opensAt: string; closesAt: string; sourceText: string }>;
-      evidenceText: string;
-    }
-  | {
-      kind: "activation_range";
-      startsOn: string;
-      endsOn: string;
-      evidenceText: string;
-    }
-  | { kind: "source_text"; text: string }
-  | { kind: "not_provided" };
-
-export interface CoolingSite {
-  id: string;
-  cityId: string;
-  sourceKey: string;
-  name: string;
-  addressText: string;
-  evidenceUrl: string;
-  temporalClaim: TemporalClaim;
-  explicitClaims: ExplicitClaim[];
-  observedAt: string;
-}
+export type {
+  CoolingSite,
+  ExplicitClaim,
+  QualityDisposition,
+  ReasonCode,
+  SnapshotStatus,
+  SourceState,
+  TemporalClaim
+} from "@coolpath/domain";
 
 export interface TimelineEvent {
   id: string;
@@ -87,36 +60,72 @@ export interface CityResponse {
   };
   snapshot: {
     id: string;
+    sourceId: string;
+    runId: string;
     observedAt: string;
     observedAtLocal?: string;
+    sourceReportedUpdatedAt: string | null;
     contentHash: string;
-    status: string;
+    status: SnapshotStatus;
+    promotedAt: string | null;
     sites: CoolingSite[];
   } | null;
   latestRun: {
     id: string;
+    sourceId: string;
     startedAt: string;
-    completedAt: string;
-    outcome: string;
+    fetchedAt: string | null;
+    completedAt: string | null;
+    outcome: QualityDisposition;
+    collectorId: string;
     collectorVersion: string;
+    schemaVersion: string;
     recordCount: number;
-    reasonCodes: string[];
+    rawSha256: string;
+    reasonCodes: ReasonCode[];
     validationSummary: {
+      disposition: QualityDisposition;
+      hardFailures: ReasonCode[];
+      softAnomalies: ReasonCode[];
+      recordCount: number;
       requiredFieldCompleteness: number;
       optionalClaimCoverage: number;
+      contentHash: string;
+      coverage?: {
+        providerRecordsReceived: number;
+        normalizedRecordsAccepted: number;
+        recordsFilteredNotLocations: number;
+        exactDuplicatesRemoved: number;
+        recordsRejectedByValidation: number;
+        recordsQuarantined: number;
+      };
     };
   } | null;
+  incident: Incident | null;
   timeline: TimelineEvent[];
 }
 
+export type HealState =
+  | "not_requested"
+  | "running"
+  | "review_pending"
+  | "approved"
+  | "rejected"
+  | "failed";
+
 export interface Incident {
   id: string;
+  sourceId: string;
+  runId: string;
   severity: "warning" | "critical";
-  reasonCodes: string[];
+  reasonCodes: ReasonCode[];
   openedAt: string;
-  healState: string;
+  healState: HealState;
+  healJobId: string | null;
   healPrompt: string | null;
   healDiff: Array<{ field: string; before: string; after: string }>;
+  resolvedByRunId: string | null;
+  resolvedAt: string | null;
 }
 
 export interface ApiEnvelope<T> {
