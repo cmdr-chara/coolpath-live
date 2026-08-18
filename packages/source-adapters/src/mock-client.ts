@@ -83,4 +83,8 @@ export class MockScraperStudioClient implements ScraperStudioClient {
       version: input.approve ? "2" : "1"
     });
   }
+
+  close(): void {
+    this.reset();
+  }
 }

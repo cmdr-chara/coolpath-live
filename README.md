@@ -12,8 +12,11 @@ CoolPath is not emergency or medical guidance. It does not claim that a location
 
 - Strict TypeScript and Zod canonical contracts for sites, temporal claims and evidence.
 - Deterministic hard and soft quality gates for schema, origin, HTTPS, identity, yield, content and optional-field coverage.
-- SQLite WAL persistence with Drizzle schemas and a transactional `publishedSnapshotId` promotion boundary.
-- Fastify API exposing only published snapshots, with ETags, security headers, source allowlists and sanitized errors.
+- SQLite WAL persistence with Drizzle schemas, versioned SQL migrations and a transactional `publishedSnapshotId` promotion boundary.
+- Fastify API exposing only published snapshots, with semantic ETags, conditional requests, security headers, source allowlists and sanitized errors.
+- Deterministic TTL reconciliation that marks expired trusted data historical without launching a provider request or deleting the snapshot.
+- Per-source single-flight coordination that prevents overlapping checks and healing mutations while allowing independent sources to proceed.
+- Separate lightweight liveness and database/snapshot readiness signals, non-blocking real-mode startup and graceful process shutdown.
 - Real Bright Data Scraper Studio API client plus a deterministic mock client. Mock mode is always labelled.
 - Manual self-healing review: detect drift, quarantine output, protect the baseline, prepare a field-specific prompt, display the selector diff, approve, re-run the same collector and validate before publishing.
 - Responsive React civic-evidence interface with public and technical views, URL-backed navigation, source-state rendering, keyboard-visible focus and evidence drawers.
@@ -69,7 +72,16 @@ pnpm dev
 
 Open `http://localhost:5173`. The API listens on `http://127.0.0.1:8787` by default.
 
-Copy `.env.example` to `.env` to override ports or persistence. Mock mode is the default and does not need credentials.
+Copy `.env.example` to `.env` to override ports or persistence. Mock mode is the default, needs no credentials and deterministically publishes its fixture when the database has no trusted snapshot.
+
+Runtime probes:
+
+```bash
+curl --fail http://127.0.0.1:8787/healthz
+curl --fail http://127.0.0.1:8787/readyz
+```
+
+`/healthz` proves that the process can answer HTTP. `/readyz` separately reports database usability, source initialization and trusted-snapshot availability. Temporary Bright Data unavailability does not make liveness fail.
 
 ## Reproduce layout drift
 
@@ -99,6 +111,17 @@ Create a Pennsylvania 211 collector in Scraper Studio that outputs:
 
 Set `COOLPATH_MODE=real`, `BRIGHT_DATA_API_TOKEN`, `PRIMARY_COLLECTOR_ID` and a random `OPERATOR_API_TOKEN` of at least 32 characters in `.env`. Credentials remain server-side and logs redact authorization fields. Observation timestamps are assigned server-side instead of trusting generated collector values; detail links are resolved and restricted to the `search.pa211.org` HTTPS origin.
 
+Real-mode startup is credit-safe by default. `AUTO_START_REAL_CHECK=false` seeds the allowlisted source and starts HTTP without launching Bright Data. A scheduler or operator can intentionally run one check after the service is listening:
+
+```bash
+curl --fail-with-body \
+  --request POST \
+  --header "Authorization: Bearer ${OPERATOR_API_TOKEN}" \
+  http://127.0.0.1:8787/api/operator/sources/pa211-philadelphia-cooling/check
+```
+
+Set `AUTO_START_REAL_CHECK=true` only when one background initial check is desired for an empty database. The task is caught and logged safely, never blocks `/healthz`, and does not run when a trusted snapshot already exists. Tests and CI always inject deterministic clients and never contact Bright Data.
+
 The client follows Bright Data's documented API flow:
 
 - [Scraper Studio AI flow overview](https://docs.brightdata.com/api-reference/scraper-studio-api/ai-flow/overview)
@@ -119,10 +142,15 @@ The smoke command does not publish or mutate the application database. It runs t
 - `GET /api/cities/:slug`
 - `GET /api/incidents/:sourceId/current`
 - `GET /healthz`
+- `GET /readyz`
+
+Public representation ETags cover the meaningful city, source state, trusted snapshot, latest run, active incident and bounded timeline. The volatile response `generatedAt` value is deliberately excluded. Public reads use `Cache-Control: public, max-age=0, must-revalidate`; a matching `If-None-Match` receives `304`. A freshness transition, drift incident or recovery therefore invalidates cached civic status instead of allowing cached `HEALTHY` metadata to conceal a degraded state.
 
 Mock-only operator endpoints live under `/api/demo/*`; they accept no URLs and are not registered in real mode. There is no generic proxy or arbitrary scraping endpoint.
 
-Real-mode check, healing and approval endpoints live under `/api/operator/sources/:sourceId/*`. They accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`. No URL can be supplied by the caller.
+Real-mode check, healing and approval endpoints live under `/api/operator/sources/:sourceId/*`. They accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`. No URL can be supplied by the caller. Concurrent mutations for the same source return a sanitized `409`; separate sources retain independent coordination.
+
+Successful operator checks return bounded aggregate coverage counts. The latest-run metadata persists the same counts without exposing rejected rows or raw provider payloads. Counting definitions are documented in [docs/source-policy.md](docs/source-policy.md).
 
 ## Quality gates
 
@@ -131,6 +159,22 @@ Hard contract failures quarantine immediately: zero rows, invalid schema, missin
 Soft anomalies also block automatic publication pending review: major yield drop, widespread optional-field loss, suspicious content replacement, stable-identity replacement and unexpected record growth.
 
 403, 429, timeout, DNS and temporary provider failures are inconclusive. They are never presented as proof of layout drift.
+
+A successful replacement publication resolves any active incident in the same persistence transaction. An ordinary passing check returns the source to `HEALTHY`; a validated run after an approved healing workflow records `RECOVERED`. Quarantined and inconclusive runs preserve the incident and last trusted snapshot.
+
+## Database migrations
+
+`packages/db/migrations/*.sql` is the authoritative schema history. `CoolPathRepository` enables foreign keys and WAL, creates `_coolpath_migrations`, and applies unapplied numbered SQL files transactionally in lexical order. Schema SQL is not duplicated in application code.
+
+For local development and deployment:
+
+1. Back up the persistent SQLite database before deploying a schema-changing release.
+2. Add a new numbered migration; do not rewrite a migration already recorded by deployed databases.
+3. Run the normal verification commands against an empty database and a representative existing database.
+4. Deploy the code with the `packages/db/migrations` directory intact.
+5. Start the API normally. Repository initialization applies pending migrations idempotently before serving data.
+
+No reset or destructive migration command is part of startup. A legacy database that predates `_coolpath_migrations` keeps existing rows while the idempotent initial schema is registered.
 
 ## Verification
 
@@ -141,9 +185,11 @@ pnpm lint
 pnpm format
 pnpm build
 pnpm test:e2e
+pnpm verify
+git diff --check
 ```
 
-Pull-request tests use sanitized deterministic fixtures and do not perform live HTTP requests.
+Pull-request and branch tests use sanitized deterministic fixtures and do not perform live HTTP requests.
 
 ## Privacy and legal boundaries
 

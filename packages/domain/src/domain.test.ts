@@ -99,6 +99,30 @@ describe("quality gate", () => {
     expect(result.softAnomalies).toContain("MAJOR_YIELD_DROP");
   });
 
+  it("combines exclusive normalization counts with contract rejection and quarantine", () => {
+    const result = evaluateCandidate({
+      records: [baseSite, { name: "missing required fields" }],
+      allowedOrigins: ["https://example.gov"],
+      candidate,
+      coverage: {
+        providerRecordsReceived: 5,
+        normalizedRecordsAccepted: 2,
+        recordsFilteredNotLocations: 1,
+        exactDuplicatesRemoved: 1,
+        recordsRejectedBySourceValidation: 1
+      }
+    });
+
+    expect(result.coverage).toEqual({
+      providerRecordsReceived: 5,
+      normalizedRecordsAccepted: 2,
+      recordsFilteredNotLocations: 1,
+      exactDuplicatesRemoved: 1,
+      recordsRejectedByValidation: 2,
+      recordsQuarantined: 1
+    });
+  });
+
   it.each([
     [{ kind: "http", status: 403 } as const, "TRANSPORT_FORBIDDEN"],
     [{ kind: "http", status: 429 } as const, "TRANSPORT_RATE_LIMITED"],

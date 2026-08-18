@@ -40,11 +40,29 @@ export interface BaselineMetadata extends CandidateMetadata {
   contentHash: string;
 }
 
+export interface CandidateCoverageInput {
+  providerRecordsReceived: number;
+  normalizedRecordsAccepted: number;
+  recordsFilteredNotLocations: number;
+  exactDuplicatesRemoved: number;
+  recordsRejectedBySourceValidation: number;
+}
+
+export interface SourceCoverageMetrics {
+  providerRecordsReceived: number;
+  normalizedRecordsAccepted: number;
+  recordsFilteredNotLocations: number;
+  exactDuplicatesRemoved: number;
+  recordsRejectedByValidation: number;
+  recordsQuarantined: number;
+}
+
 export interface QualityInput {
   records: unknown[];
   allowedOrigins: string[];
   candidate: CandidateMetadata;
   baseline?: BaselineMetadata;
+  coverage?: CandidateCoverageInput;
 }
 
 export interface ValidationSummary {
@@ -55,13 +73,43 @@ export interface ValidationSummary {
   requiredFieldCompleteness: number;
   optionalClaimCoverage: number;
   contentHash: string;
+  coverage?: SourceCoverageMetrics;
   sites: CoolingSite[];
+}
+
+export interface EvaluatedValidationSummary extends ValidationSummary {
+  coverage: SourceCoverageMetrics;
 }
 
 const htmlPattern = /<\/?(?:script|style|iframe|object|embed|[a-z][a-z0-9-]*)(?:\s[^>]*)?>/i;
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
+}
+
+function normalizedCount(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+}
+
+function coverageFor(input: QualityInput): CandidateCoverageInput {
+  if (input.coverage) {
+    return {
+      providerRecordsReceived: normalizedCount(input.coverage.providerRecordsReceived),
+      normalizedRecordsAccepted: normalizedCount(input.coverage.normalizedRecordsAccepted),
+      recordsFilteredNotLocations: normalizedCount(input.coverage.recordsFilteredNotLocations),
+      exactDuplicatesRemoved: normalizedCount(input.coverage.exactDuplicatesRemoved),
+      recordsRejectedBySourceValidation: normalizedCount(
+        input.coverage.recordsRejectedBySourceValidation
+      )
+    };
+  }
+  return {
+    providerRecordsReceived: input.records.length,
+    normalizedRecordsAccepted: input.records.length,
+    recordsFilteredNotLocations: 0,
+    exactDuplicatesRemoved: 0,
+    recordsRejectedBySourceValidation: 0
+  };
 }
 
 export function stableContentHash(sites: CoolingSite[]): string {
@@ -97,7 +145,7 @@ function optionalCoverage(sites: CoolingSite[]): number {
   return withOptional / sites.length;
 }
 
-export function evaluateCandidate(input: QualityInput): ValidationSummary {
+export function evaluateCandidate(input: QualityInput): EvaluatedValidationSummary {
   const hardFailures: ReasonCode[] = [];
   const softAnomalies: ReasonCode[] = [];
   const sites: CoolingSite[] = [];
@@ -187,6 +235,8 @@ export function evaluateCandidate(input: QualityInput): ValidationSummary {
   const soft = unique(softAnomalies);
   const disposition: QualityDisposition =
     hard.length > 0 ? "quarantined" : soft.length > 0 ? "review_required" : "publishable";
+  const sourceCoverage = coverageFor(input);
+  const contractRejected = Math.max(0, input.records.length - sites.length);
 
   return {
     disposition,
@@ -197,6 +247,15 @@ export function evaluateCandidate(input: QualityInput): ValidationSummary {
       input.records.length === 0 ? 0 : Math.min(1, sites.length / input.records.length),
     optionalClaimCoverage: optionalCoverage(sites),
     contentHash,
+    coverage: {
+      providerRecordsReceived: sourceCoverage.providerRecordsReceived,
+      normalizedRecordsAccepted: sourceCoverage.normalizedRecordsAccepted,
+      recordsFilteredNotLocations: sourceCoverage.recordsFilteredNotLocations,
+      exactDuplicatesRemoved: sourceCoverage.exactDuplicatesRemoved,
+      recordsRejectedByValidation:
+        sourceCoverage.recordsRejectedBySourceValidation + contractRejected,
+      recordsQuarantined: disposition === "publishable" ? 0 : sites.length
+    },
     sites
   };
 }

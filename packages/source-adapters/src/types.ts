@@ -1,3 +1,5 @@
+import type { CandidateCoverageInput } from "@coolpath/domain";
+
 export interface CollectorRunInput {
   collectorId: string;
   sourceId: string;
@@ -48,9 +50,17 @@ export interface HealDecision {
   canonicalUrl: string;
 }
 
+export interface NormalizationResult {
+  records: unknown[];
+  coverage: CandidateCoverageInput;
+}
+
+export type RecordNormalizer = (records: unknown[], observedAt: string) => NormalizationResult;
+
 export interface ScraperStudioClient {
   runCollector(input: CollectorRunInput): Promise<CollectorRunResult>;
   getCollectorStatus(collectorId: string): Promise<CollectorStatus>;
   requestHeal(input: HealRequest): Promise<HealResult>;
   decideHeal(input: HealDecision): Promise<CollectorStatus>;
+  close?(): void | Promise<void>;
 }

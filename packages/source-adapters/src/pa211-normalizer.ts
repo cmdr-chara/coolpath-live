@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { coolingSiteSchema, type CoolingSite } from "@coolpath/domain";
 import { z } from "zod";
+import type { NormalizationResult } from "./types.js";
 
 export const PA211_CANONICAL_URL =
   "https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10";
@@ -11,6 +12,10 @@ const pa211CollectorRowSchema = z.object({
   service_text: z.string().trim().min(1).max(1_000),
   evidence_url: z.string().trim().min(1).max(1_000)
 });
+
+export interface Pa211NormalizationResult extends NormalizationResult {
+  records: CoolingSite[];
+}
 
 function stableIdentity(name: string, address: string): string {
   const readable = name
@@ -24,38 +29,91 @@ function stableIdentity(name: string, address: string): string {
   return `pa211:${readable}:${suffix}`;
 }
 
+function normalize(
+  records: unknown[],
+  observedAt: string,
+  rejectInvalidRows: boolean
+): Pa211NormalizationResult {
+  const seenIdentities = new Set<string>();
+  const normalized: CoolingSite[] = [];
+  let recordsFilteredNotLocations = 0;
+  let exactDuplicatesRemoved = 0;
+  let recordsRejectedBySourceValidation = 0;
+
+  for (const record of records) {
+    const parsed = pa211CollectorRowSchema.safeParse(record);
+    if (!parsed.success) {
+      if (rejectInvalidRows) throw parsed.error;
+      recordsRejectedBySourceValidation += 1;
+      continue;
+    }
+    const row = parsed.data;
+    if (!/cooling center/i.test(row.service_text)) {
+      recordsFilteredNotLocations += 1;
+      continue;
+    }
+
+    let evidenceUrl: URL;
+    try {
+      evidenceUrl = new URL(row.evidence_url, PA211_CANONICAL_URL);
+      if (evidenceUrl.protocol !== "https:" || evidenceUrl.hostname !== "search.pa211.org") {
+        throw new Error("PA 211 evidence URL is outside the approved HTTPS origin");
+      }
+    } catch (error) {
+      if (rejectInvalidRows) throw error;
+      recordsRejectedBySourceValidation += 1;
+      continue;
+    }
+
+    const id = stableIdentity(row.facility_name, row.address);
+    if (seenIdentities.has(id)) {
+      exactDuplicatesRemoved += 1;
+      continue;
+    }
+
+    const site = coolingSiteSchema.safeParse({
+      id,
+      cityId: "philadelphia",
+      sourceKey: "pa211-philadelphia-cooling",
+      name: row.facility_name,
+      addressText: row.address,
+      evidenceUrl: evidenceUrl.href,
+      temporalClaim: { kind: "source_text", text: row.service_text },
+      explicitClaims: [],
+      observedAt
+    });
+    if (!site.success) {
+      if (rejectInvalidRows) throw site.error;
+      recordsRejectedBySourceValidation += 1;
+      continue;
+    }
+
+    seenIdentities.add(id);
+    normalized.push(site.data);
+  }
+
+  return {
+    records: normalized,
+    coverage: {
+      providerRecordsReceived: records.length,
+      normalizedRecordsAccepted: normalized.length,
+      recordsFilteredNotLocations,
+      exactDuplicatesRemoved,
+      recordsRejectedBySourceValidation
+    }
+  };
+}
+
 export function normalizePa211Rows(
   records: unknown[],
   observedAt = new Date().toISOString()
 ): CoolingSite[] {
-  const seenIdentities = new Set<string>();
-  return records.flatMap((record) => {
-    const row = pa211CollectorRowSchema.parse(record);
-    if (!/cooling center/i.test(row.service_text)) {
-      return [];
-    }
+  return normalize(records, observedAt, true).records;
+}
 
-    const evidenceUrl = new URL(row.evidence_url, PA211_CANONICAL_URL);
-    if (evidenceUrl.protocol !== "https:" || evidenceUrl.hostname !== "search.pa211.org") {
-      throw new Error("PA 211 evidence URL is outside the approved HTTPS origin");
-    }
-
-    const id = stableIdentity(row.facility_name, row.address);
-    if (seenIdentities.has(id)) return [];
-    seenIdentities.add(id);
-
-    return [
-      coolingSiteSchema.parse({
-        id,
-        cityId: "philadelphia",
-        sourceKey: "pa211-philadelphia-cooling",
-        name: row.facility_name,
-        addressText: row.address,
-        evidenceUrl: evidenceUrl.href,
-        temporalClaim: { kind: "source_text", text: row.service_text },
-        explicitClaims: [],
-        observedAt
-      })
-    ];
-  });
+export function normalizePa211RowsWithMetrics(
+  records: unknown[],
+  observedAt = new Date().toISOString()
+): Pa211NormalizationResult {
+  return normalize(records, observedAt, false);
 }

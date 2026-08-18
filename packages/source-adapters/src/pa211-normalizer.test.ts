@@ -1,19 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { normalizePa211Rows } from "./pa211-normalizer.js";
+import { normalizePa211Rows, normalizePa211RowsWithMetrics } from "./pa211-normalizer.js";
+
+const location = {
+  facility_name: "Broad Street Ministry - Cooling Center",
+  address: "315 South Broad Street, Philadelphia, PA 19107",
+  service_text: "Serves as a cooling center during extreme heat emergencies (code reds).",
+  evidence_url: "/search/82ea1f2e-cea1-568f-a6ae-70a841dbcf13"
+};
 
 describe("Pennsylvania 211 source normalizer", () => {
   it("resolves detail links and preserves the published service statement", () => {
-    const [site] = normalizePa211Rows(
-      [
-        {
-          facility_name: "Broad Street Ministry - Cooling Center",
-          address: "315 South Broad Street, Philadelphia, PA 19107",
-          service_text: "Serves as a cooling center during extreme heat emergencies (code reds).",
-          evidence_url: "/search/82ea1f2e-cea1-568f-a6ae-70a841dbcf13"
-        }
-      ],
-      "2026-08-17T12:00:00.000Z"
-    );
+    const [site] = normalizePa211Rows([location], "2026-08-17T12:00:00.000Z");
 
     expect(site).toMatchObject({
       cityId: "philadelphia",
@@ -52,15 +49,36 @@ describe("Pennsylvania 211 source normalizer", () => {
   });
 
   it("deduplicates identical source identities", () => {
-    const record = {
-      facility_name: "Philadelphia Recreation Centers - Cooling Center",
-      address: "2101 Cecil B. Moore Avenue, Philadelphia, PA 19121",
-      service_text: "Serves as a cooling center during extreme heat emergencies (code reds).",
-      evidence_url: "/search/first"
-    };
-
     expect(
-      normalizePa211Rows([record, { ...record, evidence_url: "/search/duplicate" }])
+      normalizePa211Rows([location, { ...location, evidence_url: "/search/duplicate" }])
     ).toHaveLength(1);
+  });
+
+  it("reports bounded aggregate coverage without exposing rejected records", () => {
+    const result = normalizePa211RowsWithMetrics(
+      [
+        location,
+        { ...location, evidence_url: "/search/duplicate" },
+        {
+          facility_name: "Project HOME - Homeless Outreach Hotline",
+          address: "1515 Fairmount Avenue, Philadelphia, PA 19130",
+          service_text: "Provides a 24/7 general crisis hotline.",
+          evidence_url: "/search/example"
+        },
+        { ...location, facility_name: "Off-origin", evidence_url: "https://example.com/copied" },
+        { facility_name: "Malformed row" }
+      ],
+      "2026-08-17T12:00:00.000Z"
+    );
+
+    expect(result.records).toHaveLength(1);
+    expect(result.coverage).toEqual({
+      providerRecordsReceived: 5,
+      normalizedRecordsAccepted: 1,
+      recordsFilteredNotLocations: 1,
+      exactDuplicatesRemoved: 1,
+      recordsRejectedBySourceValidation: 2
+    });
+    expect(JSON.stringify(result)).not.toContain("https://example.com/copied");
   });
 });

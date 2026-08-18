@@ -3,34 +3,117 @@ import {
   classifyTransportFailure,
   evaluateCandidate,
   isWithinTtl,
+  reasonCodes,
   transitionSourceState,
+  type EvaluatedValidationSummary,
   type ReasonCode,
   type ValidationSummary
 } from "@coolpath/domain";
-import type { CoolPathRepository, StoredIncident, StoredSnapshot } from "@coolpath/db";
+import type {
+  CoolPathRepository,
+  StoredIncident,
+  StoredSnapshot,
+  StoredSource
+} from "@coolpath/db";
 import {
   BrightDataHttpError,
+  BrightDataTimeoutError,
   buildFieldSpecificHealPrompt,
+  type CollectorRunResult,
+  type HealResult,
+  type NormalizationResult,
+  type RecordNormalizer,
   type ScraperStudioClient
 } from "@coolpath/source-adapters";
+import { SourceNotFoundError, SourceOperationStateError } from "./errors.js";
+import { SourceOperationCoordinator } from "./source-operation-coordinator.js";
+
+interface IngestionLogger {
+  info(fields: Record<string, unknown>, message: string): void;
+  warn(fields: Record<string, unknown>, message: string): void;
+}
+
+export interface IngestionServiceOptions {
+  now?: () => Date;
+  coordinator?: SourceOperationCoordinator;
+  logger?: IngestionLogger;
+}
+
+const noOpLogger: IngestionLogger = {
+  info: () => undefined,
+  warn: () => undefined
+};
+
+const identityNormalizer: RecordNormalizer = (records) => ({
+  records,
+  coverage: {
+    providerRecordsReceived: records.length,
+    normalizedRecordsAccepted: records.length,
+    recordsFilteredNotLocations: 0,
+    exactDuplicatesRemoved: 0,
+    recordsRejectedBySourceValidation: 0
+  }
+});
 
 export class IngestionService {
+  private readonly now: () => Date;
+  private readonly coordinator: SourceOperationCoordinator;
+  private readonly logger: IngestionLogger;
+
   constructor(
     private readonly repository: CoolPathRepository,
     private readonly client: ScraperStudioClient,
-    private readonly normalizeRecords: (records: unknown[]) => unknown[] = (records) => records
-  ) {}
+    private readonly normalizeRecords: RecordNormalizer = identityNormalizer,
+    options: IngestionServiceOptions = {}
+  ) {
+    this.now = options.now ?? (() => new Date());
+    this.coordinator = options.coordinator ?? new SourceOperationCoordinator();
+    this.logger = options.logger ?? noOpLogger;
+  }
 
-  async runSource(
+  runSource(sourceId: string): Promise<{
+    runId: string;
+    validation: EvaluatedValidationSummary;
+    snapshot: StoredSnapshot;
+  }> {
+    this.requireSource(sourceId);
+    return this.coordinator.run(sourceId, () => this.runSourceUnlocked(sourceId, false));
+  }
+
+  reconcileFreshness(sourceId: string): boolean {
+    const source = this.requireSource(sourceId);
+    const snapshot = this.repository.getPublishedSnapshot(sourceId);
+    const now = this.now();
+    if (!snapshot || isWithinTtl(snapshot.observedAt, source.freshnessTtlMinutes, now)) {
+      return false;
+    }
+    return this.repository.markSourceStale({
+      sourceId,
+      occurredAt: now.toISOString(),
+      observedAt: snapshot.observedAt
+    });
+  }
+
+  requestHeal(sourceId: string): Promise<StoredIncident> {
+    this.requireSource(sourceId);
+    return this.coordinator.run(sourceId, () => this.requestHealUnlocked(sourceId));
+  }
+
+  decideHeal(sourceId: string, approve: boolean): Promise<StoredIncident | null> {
+    this.requireSource(sourceId);
+    return this.coordinator.run(sourceId, () => this.decideHealUnlocked(sourceId, approve));
+  }
+
+  private async runSourceUnlocked(
     sourceId: string,
-    recovered = false
+    recoveredByHealing: boolean
   ): Promise<{
     runId: string;
-    validation: ValidationSummary;
+    validation: EvaluatedValidationSummary;
     snapshot: StoredSnapshot;
   }> {
     const source = this.requireSource(sourceId);
-    const startedAt = new Date().toISOString();
+    const startedAt = this.nowIso();
     this.repository.setSourceState(
       sourceId,
       transitionSourceState(source.currentState, { type: "CHECK_STARTED" })
@@ -44,7 +127,7 @@ export class IngestionService {
       tone: "neutral"
     });
 
-    let result;
+    let result: CollectorRunResult;
     try {
       result = await this.client.runCollector({
         collectorId: source.collectorId,
@@ -52,46 +135,57 @@ export class IngestionService {
         canonicalUrl: source.canonicalUrl
       });
     } catch (error) {
-      await this.recordTransportFailure(sourceId, startedAt, error);
+      const failure = this.recordTransportFailure(sourceId, startedAt, error);
+      this.logCompletion({
+        sourceId,
+        runId: failure.runId,
+        startedAt,
+        completedAt: failure.completedAt,
+        disposition: "inconclusive",
+        normalizedRecordCount: 0,
+        reasonCodes: [failure.reason]
+      });
       throw error;
     }
-    let candidateRecords: unknown[];
-    try {
-      candidateRecords = this.normalizeRecords(result.records);
-    } catch {
-      candidateRecords = result.records;
-    }
+
+    const normalization = this.normalize(result.records, result.fetchedAt, sourceId);
     const baseline = this.repository.getPublishedSnapshot(sourceId);
     const baselineRun = baseline ? this.repository.getRun(baseline.runId) : null;
-    const validation = evaluateCandidate({
-      records: candidateRecords,
+    let validation: EvaluatedValidationSummary = evaluateCandidate({
+      records: normalization.records,
       allowedOrigins: source.allowedOrigins,
       candidate: {
         collectorId: result.collectorId,
         collectorVersion: result.collectorVersion,
         schemaVersion: result.schemaVersion
       },
+      coverage: normalization.coverage,
       ...(baseline
         ? {
             baseline: {
-              collectorId:
-                typeof baselineRun?.collectorId === "string"
-                  ? baselineRun.collectorId
-                  : source.collectorId,
-              collectorVersion:
-                typeof baselineRun?.collectorVersion === "string"
-                  ? baselineRun.collectorVersion
-                  : "unknown",
-              schemaVersion:
-                typeof baselineRun?.schemaVersion === "string" ? baselineRun.schemaVersion : "1",
+              collectorId: baselineRun?.collectorId ?? source.collectorId,
+              collectorVersion: baselineRun?.collectorVersion ?? "unknown",
+              schemaVersion: baselineRun?.schemaVersion ?? "1",
               sites: baseline.sites,
               contentHash: baseline.contentHash
             }
           }
         : {})
     });
+    if (normalization.failed) {
+      validation = {
+        ...validation,
+        disposition: "quarantined",
+        hardFailures: [...new Set([...validation.hardFailures, "INVALID_SCHEMA" as const])],
+        coverage: {
+          ...validation.coverage,
+          recordsQuarantined: validation.sites.length
+        }
+      };
+    }
+
     const runId = randomUUID();
-    const completedAt = new Date().toISOString();
+    const completedAt = this.nowIso();
     const reasons = [...validation.hardFailures, ...validation.softAnomalies];
     this.repository.recordRun({
       id: runId,
@@ -119,19 +213,13 @@ export class IngestionService {
     });
 
     if (validation.disposition === "publishable") {
-      this.repository.promoteSnapshot(sourceId, snapshot.id, completedAt);
-      this.repository.setSourceState(
+      this.repository.publishSnapshot({
         sourceId,
-        transitionSourceState("CHECKING", { type: "RUN_PASSED", recovered })
-      );
-      if (recovered) this.repository.resolveIncident(sourceId, runId, completedAt);
-      this.repository.addTimelineEvent({
-        sourceId,
-        occurredAt: completedAt,
-        kind: recovered ? "recovered" : "published",
-        title: recovered ? "Recovered snapshot published" : "Trusted snapshot published",
-        detail: `${validation.recordCount} records passed the complete contract suite.`,
-        tone: "positive"
+        snapshotId: snapshot.id,
+        runId,
+        promotedAt: completedAt,
+        recoveredByHealing,
+        recordCount: validation.recordCount
       });
     } else {
       const hasTrustedSnapshot = baseline !== null;
@@ -164,23 +252,32 @@ export class IngestionService {
       });
     }
 
+    this.logCompletion({
+      sourceId,
+      runId,
+      startedAt,
+      completedAt,
+      disposition: validation.disposition,
+      normalizedRecordCount: validation.coverage.normalizedRecordsAccepted,
+      reasonCodes: reasons
+    });
     return { runId, validation, snapshot };
   }
 
-  async requestHeal(sourceId: string): Promise<StoredIncident> {
+  private async requestHealUnlocked(sourceId: string): Promise<StoredIncident> {
     const source = this.requireSource(sourceId);
     const incident = this.repository.getCurrentIncident(sourceId);
-    if (!incident) throw new Error("No active incident to heal");
+    if (!incident) throw new SourceOperationStateError("No active incident to heal");
     if (incident.healState === "running" || incident.healState === "review_pending") {
-      throw new Error("A healing operation is already active");
+      throw new SourceOperationStateError("A healing operation is already active");
     }
-    const prompt = buildFieldSpecificHealPrompt(incident.reasonCodes as ReasonCode[]);
+    const prompt = buildFieldSpecificHealPrompt(asReasonCodes(incident.reasonCodes));
     this.repository.setSourceState(
       sourceId,
       transitionSourceState(source.currentState, { type: "HEAL_REQUESTED" })
     );
     this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "running", prompt });
-    let result;
+    let result: HealResult;
     try {
       result = await this.client.requestHeal({
         collectorId: source.collectorId,
@@ -193,7 +290,7 @@ export class IngestionService {
       this.repository.setSourceState(sourceId, source.currentState);
       this.repository.addTimelineEvent({
         sourceId,
-        occurredAt: new Date().toISOString(),
+        occurredAt: this.nowIso(),
         kind: "heal_failed",
         title: "Healing request failed",
         detail:
@@ -212,33 +309,52 @@ export class IngestionService {
     this.repository.setSourceState(sourceId, "REVIEW_PENDING");
     this.repository.addTimelineEvent({
       sourceId,
-      occurredAt: new Date().toISOString(),
+      occurredAt: this.nowIso(),
       kind: "heal_preview",
       title: "Healing preview ready",
       detail: `${result.diff.length} field-specific selector changes require manual approval.`,
       tone: "warning"
     });
-    return this.repository.getCurrentIncident(sourceId) as StoredIncident;
+    const current = this.repository.getCurrentIncident(sourceId);
+    if (!current) throw new Error("Incident disappeared while preparing healing preview");
+    return current;
   }
 
-  async decideHeal(sourceId: string, approve: boolean): Promise<StoredIncident | null> {
+  private async decideHealUnlocked(
+    sourceId: string,
+    approve: boolean
+  ): Promise<StoredIncident | null> {
     const source = this.requireSource(sourceId);
     const incident = this.repository.getCurrentIncident(sourceId);
     if (!incident?.healJobId || incident.healState !== "review_pending") {
-      throw new Error("No healing preview is pending review");
+      throw new SourceOperationStateError("No healing preview is pending review");
     }
-    await this.client.decideHeal({
-      collectorId: source.collectorId,
-      jobId: incident.healJobId,
-      approve,
-      canonicalUrl: source.canonicalUrl
-    });
+    try {
+      await this.client.decideHeal({
+        collectorId: source.collectorId,
+        jobId: incident.healJobId,
+        approve,
+        canonicalUrl: source.canonicalUrl
+      });
+    } catch (error) {
+      this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
+      this.repository.setSourceState(sourceId, this.failedOperationState(sourceId));
+      this.repository.addTimelineEvent({
+        sourceId,
+        occurredAt: this.nowIso(),
+        kind: "heal_failed",
+        title: "Healing decision failed",
+        detail: "The provider did not apply the reviewed decision. The incident remains open.",
+        tone: "critical"
+      });
+      throw error;
+    }
     if (!approve) {
       this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "rejected" });
       this.repository.setSourceState(sourceId, "BROKEN");
       this.repository.addTimelineEvent({
         sourceId,
-        occurredAt: new Date().toISOString(),
+        occurredAt: this.nowIso(),
         kind: "heal_rejected",
         title: "Healing preview rejected",
         detail: "No collector change was applied.",
@@ -247,7 +363,7 @@ export class IngestionService {
       return this.repository.getCurrentIncident(sourceId);
     }
     try {
-      const rerun = await this.runSource(sourceId, true);
+      const rerun = await this.runSourceUnlocked(sourceId, true);
       if (rerun.validation.disposition !== "publishable") {
         this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
       }
@@ -258,23 +374,66 @@ export class IngestionService {
     return this.repository.getCurrentIncident(sourceId);
   }
 
-  private requireSource(sourceId: string) {
+  private normalize(
+    records: unknown[],
+    observedAt: string,
+    sourceId: string
+  ): NormalizationResult & { failed: boolean } {
+    try {
+      return { ...this.normalizeRecords(records, observedAt), failed: false };
+    } catch (error) {
+      this.logger.warn(
+        {
+          sourceId,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          providerRecordCount: records.length
+        },
+        "source normalization failed"
+      );
+      return {
+        records: [],
+        coverage: {
+          providerRecordsReceived: records.length,
+          normalizedRecordsAccepted: 0,
+          recordsFilteredNotLocations: 0,
+          exactDuplicatesRemoved: 0,
+          recordsRejectedBySourceValidation: records.length
+        },
+        failed: true
+      };
+    }
+  }
+
+  private requireSource(sourceId: string): StoredSource {
     const source = this.repository.getSource(sourceId);
-    if (!source || !source.enabled) throw new Error("Source is not allowlisted or is disabled");
+    if (!source || !source.enabled) throw new SourceNotFoundError();
     return source;
   }
 
-  private async recordTransportFailure(
+  private failedOperationState(sourceId: string): StoredSource["currentState"] {
+    const source = this.requireSource(sourceId);
+    const published = this.repository.getPublishedSnapshot(sourceId);
+    return transitionSourceState("CHECKING", {
+      type: "RUN_FAILED",
+      hasTrustedSnapshot: published !== null,
+      withinTtl: published
+        ? isWithinTtl(published.observedAt, source.freshnessTtlMinutes, this.now())
+        : false,
+      inconclusive: true
+    });
+  }
+
+  private recordTransportFailure(
     sourceId: string,
     startedAt: string,
     error: unknown
-  ): Promise<void> {
+  ): { runId: string; completedAt: string; reason: ReasonCode } {
     const source = this.requireSource(sourceId);
-    const completedAt = new Date().toISOString();
+    const completedAt = this.nowIso();
     const reason = classifyTransportFailure(
       error instanceof BrightDataHttpError
         ? { kind: "http", status: error.status }
-        : error instanceof DOMException && error.name === "AbortError"
+        : isTimeoutFailure(error)
           ? { kind: "timeout" }
           : isDnsFailure(error)
             ? { kind: "dns" }
@@ -289,6 +448,14 @@ export class IngestionService {
       requiredFieldCompleteness: 0,
       optionalClaimCoverage: 0,
       contentHash: "",
+      coverage: {
+        providerRecordsReceived: 0,
+        normalizedRecordsAccepted: 0,
+        recordsFilteredNotLocations: 0,
+        exactDuplicatesRemoved: 0,
+        recordsRejectedByValidation: 0,
+        recordsQuarantined: 0
+      },
       sites: []
     };
     const runId = randomUUID();
@@ -326,8 +493,52 @@ export class IngestionService {
       detail: `${reason}. This is not classified as layout drift.`,
       tone: "warning"
     });
-    await Promise.resolve();
+    return { runId, completedAt, reason };
   }
+
+  private logCompletion(input: {
+    sourceId: string;
+    runId: string;
+    startedAt: string;
+    completedAt: string;
+    disposition: string;
+    normalizedRecordCount: number;
+    reasonCodes: readonly string[];
+  }): void {
+    const durationMs = Math.max(
+      0,
+      new Date(input.completedAt).getTime() - new Date(input.startedAt).getTime()
+    );
+    this.logger.info(
+      {
+        sourceId: input.sourceId,
+        runId: input.runId,
+        durationMs,
+        disposition: input.disposition,
+        normalizedRecordCount: input.normalizedRecordCount,
+        reasonCodes: [...input.reasonCodes]
+      },
+      "source ingestion completed"
+    );
+  }
+
+  private nowIso(): string {
+    return this.now().toISOString();
+  }
+}
+
+const reasonCodeSet = new Set<string>(reasonCodes);
+
+function asReasonCodes(values: readonly string[]): ReasonCode[] {
+  return values.filter((value): value is ReasonCode => reasonCodeSet.has(value));
+}
+
+function isTimeoutFailure(error: unknown): boolean {
+  return (
+    error instanceof BrightDataTimeoutError ||
+    (error instanceof DOMException && error.name === "AbortError") ||
+    (error instanceof Error && error.name === "AbortError")
+  );
 }
 
 function isDnsFailure(error: unknown): boolean {

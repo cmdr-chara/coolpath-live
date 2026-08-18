@@ -34,6 +34,25 @@ The original product brief preferred official municipal sources. Bright Data blo
 
 The collector reads only the visible first page, keeps records explicitly described as cooling centers and excludes phone numbers, hotlines, map-only listings, directions links and duplicates. Evidence links are resolved against and restricted to the PA 211 HTTPS origin. Observation time is assigned server-side.
 
+The verified 2026-08-17 baseline received 25 bounded first-page provider records and normalized 23 publishable location records. Those numbers do not claim complete coverage of the 32 source matches. They also do not permanently assign the two non-accepted rows to a fixed category: every run records the actual aggregate disposition produced by the current rows and policy.
+
+### Aggregate coverage accounting
+
+Coverage metrics are operational evidence, not a completeness claim. The normalizer and canonical validator use these definitions:
+
+| Metric                        | Counting rule                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `providerRecordsReceived`     | Every top-level row supplied by the configured collector for the bounded run                                                       |
+| `normalizedRecordsAccepted`   | Rows that pass source parsing, location filtering, HTTPS/origin checks and exact-duplicate removal before canonical validation     |
+| `recordsFilteredNotLocations` | Valid source rows whose service text does not identify a cooling-center location                                                   |
+| `exactDuplicatesRemoved`      | Later rows with the same stable normalized name-and-address identity as an already accepted row                                    |
+| `recordsRejectedByValidation` | Source-schema/evidence rejects plus later canonical-contract rejects; an item rejected at the source boundary is not counted again |
+| `recordsQuarantined`          | Canonically valid sites retained in a candidate that is withheld because the complete candidate is not publishable                 |
+
+The first four result categories are applied in order, so a provider row is accepted, filtered, de-duplicated or source-rejected once. Canonical rejection occurs only for rows that reached canonical validation. `recordsQuarantined` is intentionally an outcome measure rather than another mutually exclusive input-row category: it can overlap `normalizedRecordsAccepted` when otherwise valid sites are held back because another record or candidate-level anomaly prevents publication.
+
+Only aggregate counts, disposition and reason codes may be persisted in the validation summary or returned by the API. Raw rejected records, private provider response data and personal contact fields are not exposed. The implementation does not infer missing pages, call undocumented pagination endpoints or relabel Pennsylvania 211 as a municipal or official government source.
+
 ## Read-only candidate: Arizona Faith Network
 
 - **Authority:** Arizona Faith Network
@@ -98,5 +117,5 @@ Re-review a source before changing its `sourcePolicyVersion`:
 4. Confirm there is no stable official API/RSS that is a better product input.
 5. Run one low-rate manual collector smoke test.
 6. Inspect evidence URLs and sanitized fixtures.
-7. Update known limitations and TTL.
+7. Update known limitations, aggregate expectations and TTL.
 8. Never turn a network failure into a layout-drift conclusion.
