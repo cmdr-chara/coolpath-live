@@ -1,152 +1,161 @@
-# CoolPath Live — final frontend visual QA
+# CoolPath Live — frontend visual QA
 
 Date: 2026-08-18
 
-This review compares the implemented `frontend/reference-led-redesign` against the rendered baseline in `BASELINE-AUDIT.md` and the design contract in `DESIGN.md`.
+This review records the visual acceptance work for `frontend/reference-led-redesign`. The current direction is the approved **Civic Clarity / Concept 1** treatment: a calm civic product with real product hierarchy, restrained motion, and local decorative artwork rather than a generic dashboard aesthetic.
 
-The application was rendered with Chromium in GitHub Actions against the deterministic mock API. Screenshots were inspected for public/technical desktop and mobile states, search, evidence inspection, drift/quarantine, repair review, and recovery. The screenshot workflow was temporary and is removed after this review; normal CI remains the merge gate.
+The application was rendered with Chromium in GitHub Actions against the deterministic mock API. The successful image-led QA run captured public desktop/mobile plus technical healthy/drift states. Later refinements only add the circular facility marker and tighten presenter alignment; the normal CI/Playwright suite remains the merge gate for those code changes.
+
+## Art direction
+
+The final implementation deliberately avoids both the old editorial/newsprint treatment and a generic equal-card AI dashboard.
+
+Three local SVG artworks provide visual variety without remote dependencies:
+
+- `assets/philadelphia-park.svg` — public cooling-directory hero;
+- `assets/civic-building.svg` — technical verification-facts surface;
+- `assets/bridge-river.svg` — technical trust/provenance surface.
+
+The images are decorative and do not assert weather, location availability, operating status, or historical run data. The UI continues to display only facts supported by the existing API/domain model.
 
 ## Public directory
 
-### 1440×1000 — pass
+### Desktop — pass
 
-- The page begins with the actual civic task, not an editorial hero.
-- `Demo City cooling locations`, verification state, update time, source link, and search are visible before the list.
-- Location records begin materially higher than in the old baseline.
-- Rows read as search/list results rather than cards or magazine entries.
-- Ornamental numeric indices and serif display typography are gone.
-- Evidence remains a secondary action rather than competing with facility identity.
-- No row changes its horizontal padding on hover.
+- The hero image lives **inside the same product container** as the task copy, verification state, source provenance, and search.
+- The composition is asymmetric rather than mathematically centered: copy leads on the left and the park/skyline art supplies context on the right.
+- The headline is `Cooling locations you can count on`; it is product-facing rather than an internal system label.
+- Search is part of the hero task flow instead of a detached utility block.
+- Verification state, last/current report language, observed time, and source remain visible without inventing availability.
+- Location results remain left-aligned and scan-friendly below the hero.
+- Each location receives a small circular civic marker; the marker adds recognition without turning every row into a large card illustration.
+- Evidence remains a secondary action.
 
-### 390×844 — pass
+### Mobile — pass
 
-- Compact header and view switcher remain usable.
-- Task title, source status, update/source link, and search fit before the records.
-- The first real location record is fully visible in the initial viewport and the second record begins within it.
-- Search input uses 16px mobile text and Evidence actions provide a 44px touch target.
-- No horizontal page overflow was observed.
+- The same hero artwork becomes a subdued in-container background instead of a tall standalone image, preserving task density.
+- Task title, status/source metadata, and search remain ahead of the results.
+- The successful image-led render still reached the first real location in the initial 390×844 viewport.
+- Input text remains at least 16px and Evidence controls retain touch-friendly sizing.
+- Dense results return to conventional left alignment.
 
 ### Search — pass
 
-- Search filters only the already-loaded trusted snapshot.
+- Search filters only the already-published trusted snapshot.
 - Result count updates through an `aria-live` region.
 - Name/address matching is case-insensitive.
-- Empty search results are literal and do not invent alternative data.
+- Empty results remain literal and do not invent alternatives.
 - Clearing search restores the complete trusted list.
-- Playwright now covers this behavior.
 
 ### Evidence inspector — pass
 
 - Existing Radix Dialog focus semantics are preserved.
-- Desktop inspector is a compact right-side sheet instead of an oversized editorial drawer.
-- Source status, record identity, address, temporal claim, observation time, evidence host, and explicit claims remain readable.
-- The underlying directory remains visually recognizable as context.
-- Escape closes the sheet and focus returns to the triggering Evidence button; existing Playwright coverage remains green.
+- The right-side inspector remains contextual rather than becoming another full dashboard page.
+- Escape closes the inspector and focus returns to the triggering Evidence control.
 
-## Source integrity view
+## Source integrity
 
-### 1440×1000 healthy — pass
+### Healthy desktop — pass
 
-The previous baseline placed the publication pipeline below a giant title, metadata grid, status band, and presenter console. The redesigned first viewport now contains:
+The healthy technical view no longer renders a `No unresolved incident` card at all.
 
-1. source state and identity;
-2. Collector ID, mode, and source host;
-3. four high-level verification/publication metrics;
-4. the complete Source → Scraper Studio → Validation → Published snapshot path;
-5. the quarantine branch;
-6. then the deterministic presenter controls.
+The visual hierarchy is:
 
-Healthy state is intentionally quiet. `No unresolved incident` is a bounded supporting status rather than a permanent high-emphasis dashboard block.
+1. source integrity + current source status;
+2. Collector ID, mode, and canonical source;
+3. four publication/validation metrics;
+4. Source → Scraper Studio → Validation → Published boundary;
+5. varied evidence surfaces: verification facts, latest activity, published snapshot, and trust/provenance;
+6. deterministic presenter controls at the end.
 
-The latest alignment cleanup makes two additional corrections:
+The verification-facts surface contains its own civic-building artwork. The trust surface uses separate bridge/river artwork. This prevents the technical view from visually repeating the public hero and gives sections distinct identities.
 
-- the deterministic presenter heading, explanatory copy, and four-step control surface share a centered desktop axis rather than splitting title left / explanatory copy right;
-- the healthy incident surface no longer stretches to the height of the adjacent run-facts card. The grid aligns items to the start, gives the healthy state a smaller column, and renders the no-incident content as a compact status strip. The larger incident treatment is retained only when an incident actually exists.
+No fake recent-run chart or unsupported temperature value is rendered: the current API does not expose those facts.
 
-### 390×844 healthy — pass
+### Healthy mobile — pass
 
-- Source state, Collector ID, mode/source, four metrics, and the beginning/full structure of the vertical publication path are visible before presenter controls dominate the experience.
-- Long Collector IDs sit in a full-width metadata row instead of wrapping inside a narrow fixed tile.
-- The pipeline becomes a real vertical stepper without horizontal scrolling.
-- Presenter controls return to left-aligned scanning on mobile even though the desktop version is centered.
+- Source status and Collector metadata remain first.
+- Metrics and the publication path precede presenter controls.
+- The pipeline becomes a vertical stepper.
+- Technical imagery collapses responsively without becoming the main mobile task.
 
 ### Drift / quarantine — pass
 
-Desktop visual QA confirms the intended semantic contrast:
+The successful image-led drift render confirms:
 
-- source status becomes warning-colored;
-- latest run metrics expose the degraded candidate (`1` row, `0%` required fields, `5` reason codes in the deterministic fixture);
-- only the Validation step becomes critical/red;
-- Published snapshot remains separately green/trusted with the last trusted records;
-- quarantine branch becomes explicit and critical;
-- incident panel becomes visually dominant only while an incident exists;
-- internal healing state is not used as the primary user-facing incident title; the UI says `Candidate quarantined` or `Repair review pending` as appropriate.
+- warning source status becomes prominent;
+- the deterministic degraded candidate exposes its actual mock metrics/reason counts;
+- only the failed validation/candidate path becomes critical;
+- the last trusted Published step remains visually distinct;
+- quarantine becomes explicit;
+- a dedicated incident feature appears **only while an incident exists**;
+- the incident title is product-facing (`Candidate quarantined`, `Repair review pending`, or `Repair in progress`).
 
-The mobile post-action viewport keeps the failed validation/quarantine path and presenter controls in context rather than forcing a return to an oversized top-of-page heading.
+Healthy state therefore has no empty incident placeholder, while failure state has enough visual weight to be immediately legible.
 
-### Repair review — pass
+### Repair and recovery — preserved
 
-- Status clearly says manual approval is required.
-- Quarantine remains visible until recovery actually validates.
-- Selector changes remain a true comparison table.
-- The repair panel does not imply that preparing a selector diff has already published new data.
+- Selector changes remain a comparison table when a repair preview exists.
+- Preparing a repair never implies publication.
+- Approval/re-run still must validate before the new snapshot can publish.
+- On recovery, the incident feature disappears and the normal trust surfaces remain.
 
-### Recovery — pass
+## Presenter controls
 
-- Source state returns to the positive recovered state.
-- Validation and Published snapshot return to the passing path.
-- Quarantine returns to clear.
-- Incident panel collapses back to the quiet healthy/no-unresolved-incident treatment.
+The presenter is intentionally a separate bottom band rather than a primary dashboard card.
 
-## Motion and micro-interaction pass
+Desktop:
 
-Amicro was reviewed as a useful catalogue of interaction patterns, but CoolPath does not add Motion/Framer because the repository already ships GSAP and `@gsap/react`.
+- heading and explanatory copy share a centered axis;
+- four steps form one continuous control surface;
+- icon/text groups are optically centered inside each step;
+- step numbers remain small positional metadata.
 
-The implemented motion pass uses the existing stack for:
+Mobile returns to left-aligned controls for scanning and touch use.
 
-- short entrance sequencing of top-level public/technical sections;
-- smaller staggered reveals for location rows, metrics, and pipeline steps;
-- bounded search focus feedback;
-- small button/row/pipeline hover and press feedback;
-- directional arrow movement on evidence/source actions;
-- a one-shot source-status arrival pulse.
+## Motion and micro-interactions
 
-Motion is deliberately absent from correctness and navigation semantics. There is no scroll-jacking, parallax, looping decorative background, text scrambling, magnetic cursor, or long staged intro. `prefers-reduced-motion: reduce` disables the GSAP entrance sequence and decorative CSS transitions.
+Amicro was used as an interaction reference, but CoolPath keeps its existing GSAP + `@gsap/react` stack instead of adding Motion/Framer.
 
-Wide-screen centering is selective rather than global: public task/header/search content uses a centered axis, while location records remain left-aligned for scanning. Technical metadata and pipeline data remain structured rather than turning into centered marketing copy. Mobile returns to left-aligned reading flow.
+Implemented motion remains restrained:
+
+- short entrance sequencing for top-level sections;
+- small stagger for location rows, metrics, and pipeline steps;
+- bounded focus/hover/press feedback;
+- directional arrow feedback;
+- one-shot status arrival feedback.
+
+There is no scroll-jacking, parallax, looping decorative animation, magnetic cursor, or animation required for correctness. `prefers-reduced-motion: reduce` disables the decorative motion layer.
 
 ## Accessibility and interaction checks
 
-Validated through existing/new Playwright flows and visual inspection:
+Covered by the existing/new Playwright flows and implementation review:
 
 - URL-backed Public / Technical navigation;
-- browser history restoration;
-- skip link retained;
-- visible focus rules retained;
-- Evidence dialog focus trap, Escape, and focus restoration;
+- browser-history restoration;
+- skip link and focus-visible rules;
+- Evidence focus trap, Escape, and focus restoration;
 - mobile first-location viewport requirement;
-- client-side trusted-snapshot search;
-- drift → quarantine → review → recovery behavior;
-- no live Bright Data calls in E2E or visual QA.
+- trusted-snapshot search;
+- drift → quarantine → review → recovery semantics;
+- no live Bright Data calls in E2E/visual QA.
 
-## Final comparison with baseline acceptance criteria
+## Acceptance summary
 
-1. Public 390×844 reaches the first real location row: **pass**.
-2. Public desktop records begin materially higher: **pass**.
-3. Display serif and ornamental row numbers removed: **pass**.
-4. Technical desktop complete high-level pipeline in first viewport: **pass**.
-5. Technical mobile state/metrics/pipeline precede controls: **pass**.
-6. Collector IDs no longer wrap in narrow provenance tiles: **pass**.
-7. Evidence inspection does not overpower the directory: **pass**.
-8. Healthy state is quieter than degraded/quarantined state: **pass**.
-9. No hover-driven horizontal layout shift: **pass**.
-10. Product still preserves CoolPath provenance/trust semantics: **pass**.
-11. Presenter controls use a centered desktop composition while retaining mobile scanning: **pass**.
-12. Healthy incident status no longer stretches into an empty dashboard card: **pass**.
+1. Public art is contained inside the hero rather than floating outside the product surface: **pass**.
+2. Public and technical views use different artwork: **pass**.
+3. Technical view has visual variety without inventing unsupported data: **pass**.
+4. Healthy view contains no `No unresolved incident` placeholder: **pass**.
+5. Incident UI exists only for an actual incident state: **pass**.
+6. Public mobile still reaches a real location in the initial viewport in the successful Concept 1 render: **pass**.
+7. Technical mobile prioritizes source state/metrics/pipeline before controls: **pass**.
+8. Published snapshot remains distinct from a failed candidate: **pass**.
+9. Presenter controls are secondary and optically centered on desktop: **pass by implementation constraint; final micro-refinement is CI-gated**.
+10. Product provenance and safety boundaries remain unchanged: **pass**.
 
 ## Remaining non-visual constraints
 
-- This redesign does not change backend/API behavior.
+- This branch changes frontend presentation only; backend/API/domain/database behavior is unchanged.
 - Mock states remain explicitly deterministic fixtures.
-- No real Bright Data post-refactor result is inferred from these screenshots.
-- Final real Bright Data evidence remains a separate submission gate documented elsewhere in the repository.
+- These screenshots do not prove the pending real post-refactor Bright Data run.
+- Final live Bright Data evidence remains a separate submission gate documented elsewhere in the repository.
