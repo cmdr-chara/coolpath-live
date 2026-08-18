@@ -70,7 +70,7 @@ The temporary visual-regression workflow uploaded the evidence artifact and remo
 
 ## Final verification
 
-The final cleanup candidate passed the standard pull-request verification suite against `main`:
+The cleanup candidate at `24441e81715b02dda87516149ccb64de29529f99` passed the standard pull-request verification suite against `main`:
 
 - strict TypeScript/typecheck;
 - 77/77 unit and integration tests across 9 files;
