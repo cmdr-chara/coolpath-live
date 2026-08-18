@@ -67,6 +67,22 @@
     height: 34px;
   }
 
+  .directory-meta__report {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    padding: 0 7px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: rgb(255 255 255 / 0.72);
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .directory-meta__separator {
+    display: none;
+  }
+
   .presenter-console > header,
   .presenter-console > header > p,
   .presenter-feedback {
