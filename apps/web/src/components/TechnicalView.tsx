@@ -18,6 +18,13 @@ export function TechnicalView({
   const status = statusContent[city.source.status];
   const quarantined = Boolean(incident);
   const reportLabel = snapshot ? status.reportLabel : "No verified report";
+  const incidentTitle = !incident
+    ? "No unresolved incident"
+    : city.source.status === "REVIEW_PENDING"
+      ? "Repair review pending"
+      : city.source.status === "HEALING"
+        ? "Repair in progress"
+        : "Candidate quarantined";
 
   const pipeline = [
     {
@@ -83,7 +90,8 @@ export function TechnicalView({
               <dt>Source</dt>
               <dd>
                 <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-                  {sourceHost(city.source.canonicalUrl)} <ArrowSquareOut size={13} aria-hidden="true" />
+                  {sourceHost(city.source.canonicalUrl)}
+                  <ArrowSquareOut size={13} aria-hidden="true" />
                 </a>
               </dd>
             </div>
@@ -122,10 +130,7 @@ export function TechnicalView({
 
           <ol className="pipeline-strip" aria-label="Source publication pipeline">
             {pipeline.map((step, index) => (
-              <li
-                key={step.key}
-                className={`pipeline-step pipeline-step--${step.tone}`}
-              >
+              <li key={step.key} className={`pipeline-step pipeline-step--${step.tone}`}>
                 <span className="pipeline-step__marker" aria-hidden="true">
                   {step.tone === "failed" ? "!" : step.tone === "passed" ? "✓" : index + 1}
                 </span>
@@ -171,9 +176,7 @@ export function TechnicalView({
               )}
               <div>
                 <span>Current incident</span>
-                <h2 id="incident-title">
-                  {incident ? formatState(incident.healState) : "No unresolved incident"}
-                </h2>
+                <h2 id="incident-title">{incidentTitle}</h2>
               </div>
             </header>
             {incident ? (

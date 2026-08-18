@@ -47,6 +47,15 @@ jobs:
           node <<'NODE'
           const { chromium } = require('@playwright/test');
 
+          const screenshot = async (page, path) => {
+            await page.evaluate(() => {
+              window.scrollTo(0, 0);
+              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            });
+            await page.waitForTimeout(80);
+            await page.screenshot({ path, fullPage: true });
+          };
+
           (async () => {
             const browser = await chromium.launch();
             const desktop = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -54,48 +63,52 @@ jobs:
             await desktop.request.post('http://127.0.0.1:8787/api/demo/reset');
             await desktop.goto('http://127.0.0.1:5173');
             await desktop.getByRole('heading', { name: /cooling locations/i }).waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/public-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/public-1440.png');
 
             await desktop.getByRole('searchbox').fill('Harbour');
             await desktop.getByText('1 of 3 verified records match your search').waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/public-search-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/public-search-1440.png');
             await desktop.getByRole('searchbox').fill('');
 
             const evidenceButton = desktop.getByRole('button', { name: /view evidence/i }).first();
             await evidenceButton.click();
             await desktop.getByRole('dialog').waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/public-evidence-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/public-evidence-1440.png');
             await desktop.keyboard.press('Escape');
 
             await desktop.goto('http://127.0.0.1:5173/?view=technical');
             await desktop.getByRole('heading', { name: 'Source integrity' }).waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/technical-healthy-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/technical-healthy-1440.png');
 
             await desktop.getByRole('button', { name: /Simulate drift/ }).click();
             await desktop.getByLabel('Quarantine branch').getByText('Candidate quarantined').waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/technical-drift-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/technical-drift-1440.png');
 
             await desktop.getByRole('button', { name: /Prepare repair/ }).click();
             await desktop.getByRole('heading', { name: 'Repair only the failed fields.' }).waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/technical-repair-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/technical-repair-1440.png');
 
             await desktop.getByRole('button', { name: /Approve and re-run/ }).click();
             await desktop.getByText('Source recovered and re-verified').waitFor();
-            await desktop.screenshot({ path: 'ui-baseline/technical-recovered-1440.png', fullPage: true });
+            await screenshot(desktop, 'ui-baseline/technical-recovered-1440.png');
 
-            const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+            const mobile = await browser.newPage({
+              viewport: { width: 390, height: 844 },
+              isMobile: true,
+              hasTouch: true
+            });
             await mobile.request.post('http://127.0.0.1:8787/api/demo/reset');
             await mobile.goto('http://127.0.0.1:5173');
             await mobile.getByRole('heading', { name: /cooling locations/i }).waitFor();
-            await mobile.screenshot({ path: 'ui-baseline/public-390.png', fullPage: true });
+            await screenshot(mobile, 'ui-baseline/public-390.png');
 
             await mobile.goto('http://127.0.0.1:5173/?view=technical');
             await mobile.getByRole('heading', { name: 'Source integrity' }).waitFor();
-            await mobile.screenshot({ path: 'ui-baseline/technical-healthy-390.png', fullPage: true });
+            await screenshot(mobile, 'ui-baseline/technical-healthy-390.png');
 
             await mobile.getByRole('button', { name: /Simulate drift/ }).click();
             await mobile.getByLabel('Quarantine branch').getByText('Candidate quarantined').waitFor();
-            await mobile.screenshot({ path: 'ui-baseline/technical-drift-390.png', fullPage: true });
+            await screenshot(mobile, 'ui-baseline/technical-drift-390.png');
 
             await browser.close();
           })().catch((error) => {

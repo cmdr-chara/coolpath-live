@@ -1,5 +1,5 @@
 import { ArrowSquareOut, MagnifyingGlass, ShieldCheck } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { CityResponse, CoolingSite } from "../types";
 import { formatInstant } from "./format";
 import { SiteList } from "./SiteList";
@@ -17,12 +17,11 @@ export function DirectoryView({
   const sites = city.snapshot?.sites ?? [];
   const reportLabel = city.snapshot ? status.reportLabel : "No verified report";
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filteredSites = useMemo(() => {
-    if (!normalizedQuery) return sites;
-    return sites.filter((site) =>
-      `${site.name} ${site.addressText}`.toLocaleLowerCase().includes(normalizedQuery)
-    );
-  }, [normalizedQuery, sites]);
+  const filteredSites = normalizedQuery
+    ? sites.filter((site) =>
+        `${site.name} ${site.addressText}`.toLocaleLowerCase().includes(normalizedQuery)
+      )
+    : sites;
 
   return (
     <main id="main" className="page-width directory-view">
