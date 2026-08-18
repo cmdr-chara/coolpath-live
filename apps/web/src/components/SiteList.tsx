@@ -29,7 +29,12 @@ export function SiteList({
             : "Additional facility claims not stated";
 
         return (
-          <article className="site-record" key={site.id} aria-labelledby={titleId}>
+          <article
+            className="site-record"
+            key={site.id}
+            aria-labelledby={titleId}
+            data-motion-item
+          >
             <div className="site-record__identity">
               <h2 id={titleId}>{site.name}</h2>
               <address>
