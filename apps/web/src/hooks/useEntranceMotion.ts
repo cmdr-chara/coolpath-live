@@ -7,10 +7,11 @@ gsap.registerPlugin(useGSAP);
 export function useEntranceMotion(scope: RefObject<HTMLElement | null>) {
   useGSAP(
     () => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const root = scope.current;
+      if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-      const sections = gsap.utils.toArray<HTMLElement>("[data-motion-section]");
-      const items = gsap.utils.toArray<HTMLElement>("[data-motion-item]");
+      const sections = root.querySelectorAll<HTMLElement>("[data-motion-section]");
+      const items = root.querySelectorAll<HTMLElement>("[data-motion-item]");
 
       gsap.from(sections, {
         autoAlpha: 0,
