@@ -48,6 +48,12 @@ git diff --check
 
 Within the API, `app.ts` assembles dependencies. HTTP response helpers, error mapping and route groups live in focused modules. Business lifecycle logic belongs in `IngestionService`; persistence invariants belong in `CoolPathRepository`.
 
+### Dependency direction
+
+Applications may depend on workspace packages; workspace packages never depend on applications. The domain package has no HTTP, database or provider dependencies. Infrastructure packages consume domain contracts through their public entrypoints rather than reaching into another package's private files.
+
+Within `apps/api`, route modules translate HTTP input into service calls. They do not perform provider requests or persistence mutations directly. `app.ts` wires concrete dependencies and owns only resources it creates.
+
 ## Edge-first rules
 
 Handle uncertain input once, at the boundary where it enters:
