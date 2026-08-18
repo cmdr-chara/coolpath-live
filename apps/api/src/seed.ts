@@ -53,7 +53,7 @@ export function seedPrimarySourceConfiguration(
     allowedOrigins: ["https://search.pa211.org"],
     collectorId,
     freshnessTtlMinutes: 720,
-    policyVersion: "2026-08-17",
+    policyVersion: "2026-08-17-pa211",
     enabled: true,
     currentState: repository.getSource(PRIMARY_SOURCE_ID)?.currentState ?? "UNINITIALIZED",
     mode: "real"
