@@ -1,0 +1,44 @@
+name: Frontend token audit
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: ${{ !contains(github.event.head_commit.message, 'Record frontend token audit') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - name: Find unused custom properties
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = list(Path('apps/web/src/styles').glob('*.css'))
+          css = '\n'.join(path.read_text(errors='ignore') for path in files)
+          definitions = sorted(set(re.findall(r'(?m)^\s*(--[A-Za-z0-9_-]+)\s*:', css)))
+          unused = []
+          for name in definitions:
+              uses = len(re.findall(rf'var\(\s*{re.escape(name)}(?:\s*[,\)])', css))
+              if uses == 0:
+                  unused.append(name)
+          Path('apps/web/TOKEN-AUDIT.tmp').write_text(
+              f'Custom properties: {len(definitions)}\nUnused candidates: {len(unused)}\n\n' + '\n'.join(unused) + '\n'
+          )
+          PY
+      - name: Commit report and remove one-shot workflow
+        run: |
+          git rm .github/workflows/frontend-token-audit.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/TOKEN-AUDIT.tmp
+          git commit -m "Record frontend token audit"
+          git push origin HEAD:frontend/reference-led-redesign
