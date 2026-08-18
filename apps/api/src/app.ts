@@ -448,8 +448,8 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
       } catch (error) {
         app.log.warn({ err: error }, "scraper client cleanup failed");
       }
-      await backgroundCheck;
     }
+    await backgroundCheck;
     if (ownsRepository) repository.close();
   });
 
