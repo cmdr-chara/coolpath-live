@@ -129,6 +129,103 @@
   max-width: 440px;
 }
 
+/* Keep the deterministic controls visually centered as one composition. */
+.presenter-console {
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+.presenter-console > header {
+  display: grid;
+  max-width: 760px;
+  justify-items: center;
+  gap: 5px;
+  margin-inline: auto;
+  padding: 2px 0 13px;
+  text-align: center;
+}
+
+.presenter-console > header > div {
+  display: grid;
+  justify-items: center;
+}
+
+.presenter-console > header > p {
+  max-width: 620px;
+  margin: 0;
+  text-align: center;
+}
+
+.presenter-steps {
+  max-width: 1040px;
+  margin-inline: auto;
+}
+
+.presenter-steps button {
+  position: relative;
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  text-align: left;
+}
+
+.presenter-steps__number {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+}
+
+.presenter-steps button > span:last-child {
+  display: grid;
+  max-width: 170px;
+  gap: 1px;
+}
+
+.presenter-feedback {
+  max-width: 840px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Healthy state should read as a compact status, not an empty dashboard card. */
+.operations-grid {
+  align-items: start;
+}
+
+.operations-grid--healthy {
+  grid-template-columns: minmax(250px, 0.55fr) minmax(0, 1.45fr);
+}
+
+.incident-register--clear {
+  align-self: start;
+  padding: 12px 14px;
+}
+
+.incident-register--clear .ledger-title {
+  align-items: center;
+}
+
+.incident-register--clear .ledger-title > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 9px;
+}
+
+.incident-register--clear .ledger-title h2 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 19px;
+}
+
+.incident-register--clear .ledger-empty {
+  margin: 3px 0 0 29px;
+  line-height: 16px;
+}
+
 .integrity-metrics > div,
 .pipeline-step,
 .quarantine-branch,
@@ -184,6 +281,12 @@
   }
 }
 
+@media (max-width: 1050px) {
+  .operations-grid--healthy {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .integrity-header__title,
   .integrity-identity dt,
@@ -210,6 +313,32 @@
 
   .boundary-note {
     justify-content: flex-start;
+  }
+
+  .presenter-console > header,
+  .presenter-console > header > div {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .presenter-console > header > p,
+  .presenter-feedback {
+    text-align: left;
+  }
+
+  .presenter-steps button {
+    min-height: 60px;
+    justify-content: flex-start;
+    padding-left: 34px;
+  }
+
+  .incident-register--clear .ledger-title > div {
+    display: grid;
+    gap: 1px;
+  }
+
+  .incident-register--clear .ledger-empty {
+    margin-left: 29px;
   }
 
   .site-record:hover,
