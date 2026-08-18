@@ -1,0 +1,107 @@
+name: Final precise dead CSS purge
+
+on:
+  push:
+    branches: [frontend/reference-led-redesign]
+
+permissions:
+  contents: write
+
+jobs:
+  purge:
+    if: ${{ !contains(github.event.head_commit.message, 'Finish dead frontend CSS purge') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontend/reference-led-redesign
+          fetch-depth: 0
+      - name: Remove remaining exact dead selectors
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          dead = {
+              'directory-intro', 'incident-meta', 'integrity-header', 'integrity-header__title',
+              'integrity-identity', 'integrity-state', 'operations-grid', 'run-register',
+              'status-banner', 'status-banner__meta', 'timeline-event', 'timeline-register'
+          }
+          class_re = re.compile(r'\.([A-Za-z_][A-Za-z0-9_-]*)')
+
+          def matching_brace(text: str, opening: int) -> int:
+              depth = 0
+              quote = None
+              escape = False
+              for i in range(opening, len(text)):
+                  ch = text[i]
+                  if quote:
+                      if escape:
+                          escape = False
+                      elif ch == '\\':
+                          escape = True
+                      elif ch == quote:
+                          quote = None
+                      continue
+                  if ch in {'"', "'"}:
+                      quote = ch
+                  elif ch == '{':
+                      depth += 1
+                  elif ch == '}':
+                      depth -= 1
+                      if depth == 0:
+                          return i
+              raise ValueError('Unbalanced CSS braces')
+
+          def clean_selectors(header: str):
+              stripped = header.strip()
+              if not stripped or stripped.startswith('@'):
+                  return header
+              selectors = [part.strip() for part in stripped.split(',')]
+              kept = []
+              for selector in selectors:
+                  classes = class_re.findall(selector)
+                  if any(name in dead for name in classes):
+                      continue
+                  kept.append(selector)
+              if not kept:
+                  return None
+              indent = header[: len(header) - len(header.lstrip())]
+              return indent + (',\n' + indent).join(kept)
+
+          def clean_css(text: str) -> str:
+              out = []
+              cursor = 0
+              while True:
+                  opening = text.find('{', cursor)
+                  if opening < 0:
+                      out.append(text[cursor:])
+                      break
+                  header = text[cursor:opening]
+                  closing = matching_brace(text, opening)
+                  body = text[opening + 1:closing]
+                  stripped = header.strip()
+                  if stripped.startswith('@media') or stripped.startswith('@supports') or stripped.startswith('@layer'):
+                      out.append(header + '{' + clean_css(body) + '}')
+                  elif stripped.startswith('@'):
+                      out.append(header + '{' + body + '}')
+                  else:
+                      cleaned = clean_selectors(header)
+                      if cleaned is not None:
+                          out.append(cleaned + '{' + body + '}')
+                  cursor = closing + 1
+              return ''.join(out)
+
+          for path in Path('apps/web/src/styles').glob('*.css'):
+              path.write_text(clean_css(path.read_text()))
+          PY
+      - name: Remove audit artifacts and commit
+        run: |
+          rm -f apps/web/CSS-DEAD-LOCATIONS.tmp
+          git rm .github/workflows/frontend-css-purge-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/styles
+          git add -u apps/web/CSS-DEAD-LOCATIONS.tmp
+          git commit -m "Finish dead frontend CSS purge"
+          git push origin HEAD:frontend/reference-led-redesign
