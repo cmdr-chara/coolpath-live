@@ -65,7 +65,8 @@ function recordCandidate(
   runId: string,
   status: "candidate" | "quarantined" = "candidate"
 ) {
-  const validation = status === "candidate" ? summary : { ...summary, disposition: "quarantined" as const };
+  const validation =
+    status === "candidate" ? summary : { ...summary, disposition: "quarantined" as const };
   repository.recordRun({
     id: runId,
     sourceId: "test-source",
@@ -220,13 +221,14 @@ describe("snapshot publication", () => {
 
   it("preserves state on reseed and hides disabled sources", () => {
     repository.setSourceState("test-source", "HEALTHY");
-    repository.upsertSource({
-      ...repository.getSource("test-source")!,
-      agencyName: "Updated Authority"
-    });
+    const source = repository.getSource("test-source");
+    if (!source) throw new Error("Expected seeded source");
+    repository.upsertSource({ ...source, agencyName: "Updated Authority" });
     expect(repository.getSource("test-source")?.currentState).toBe("HEALTHY");
 
-    repository.upsertSource({ ...repository.getSource("test-source")!, enabled: false });
+    const updatedSource = repository.getSource("test-source");
+    if (!updatedSource) throw new Error("Expected updated source");
+    repository.upsertSource({ ...updatedSource, enabled: false });
     expect(repository.listCities()).toHaveLength(0);
     expect(repository.getCityBySlug("test")).toBeNull();
   });
