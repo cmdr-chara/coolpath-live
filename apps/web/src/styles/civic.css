@@ -1,4 +1,4 @@
-/* Concept 1: civic clarity with image-led context and varied technical surfaces. */
+/* Civic Clarity product styles. */
 :root{
   --brand: #14795f;
   --brand-hover: #0f644e;
@@ -985,7 +985,7 @@ body{
   }
 }
 
-/* Final concept refinements after rendered QA. */
+/* Rendered QA refinements. */
 .site-record__identity{
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -1083,7 +1083,7 @@ body{
   }
 }
 
-/* Distill pass: reduce card density and let proximity/dividers carry hierarchy. */
+/* Container-density refinements: use proximity and dividers for secondary hierarchy. */
 
 /* Public directory: one continuous result surface instead of one card per location. */
 .site-list{
