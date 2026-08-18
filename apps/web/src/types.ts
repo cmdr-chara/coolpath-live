@@ -1,11 +1,9 @@
 import type {
   CoolingSite,
-  ExplicitClaim,
   QualityDisposition,
   ReasonCode,
   SnapshotStatus,
-  SourceState,
-  TemporalClaim
+  SourceState
 } from "@coolpath/domain";
 
 export type {
