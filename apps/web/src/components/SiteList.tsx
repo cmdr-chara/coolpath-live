@@ -31,11 +31,13 @@ export function SiteList({
         return (
           <article className="site-record" key={site.id} aria-labelledby={titleId} data-motion-item>
             <div className="site-record__identity">
-              <h2 id={titleId}>{site.name}</h2>
-              <address>
-                <MapPinLine size={17} aria-hidden="true" />
-                <span>{site.addressText}</span>
-              </address>
+              <span className="site-record__mark" aria-hidden="true">
+                <MapPinLine size={19} weight="bold" />
+              </span>
+              <div>
+                <h2 id={titleId}>{site.name}</h2>
+                <address>{site.addressText}</address>
+              </div>
             </div>
 
             <div className="site-record__summary">
