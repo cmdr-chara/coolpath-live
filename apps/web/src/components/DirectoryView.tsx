@@ -1,5 +1,6 @@
 import { ArrowSquareOut, MagnifyingGlass, ShieldCheck } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useEntranceMotion } from "../hooks/useEntranceMotion";
 import type { CityResponse, CoolingSite } from "../types";
 import { formatInstant } from "./format";
 import { SiteList } from "./SiteList";
@@ -12,6 +13,7 @@ export function DirectoryView({
   city: CityResponse;
   onEvidence: (site: CoolingSite, trigger: HTMLButtonElement) => void;
 }) {
+  const viewRef = useRef<HTMLElement>(null);
   const [query, setQuery] = useState("");
   const status = statusContent[city.source.status];
   const sites = city.snapshot?.sites ?? [];
@@ -23,9 +25,15 @@ export function DirectoryView({
       )
     : sites;
 
+  useEntranceMotion(viewRef);
+
   return (
-    <main id="main" className="page-width directory-view">
-      <section className="directory-intro" aria-labelledby="directory-title">
+    <main id="main" ref={viewRef} className="page-width directory-view">
+      <section
+        className="directory-intro"
+        aria-labelledby="directory-title"
+        data-motion-section
+      >
         <p className="kicker">
           {city.city.displayName} / {city.city.region}
         </p>
@@ -65,7 +73,11 @@ export function DirectoryView({
         </div>
       </section>
 
-      <section className="directory-search" aria-labelledby="directory-search-label">
+      <section
+        className="directory-search"
+        aria-labelledby="directory-search-label"
+        data-motion-section
+      >
         <label id="directory-search-label" htmlFor="directory-search-input">
           Search published locations
         </label>
@@ -82,7 +94,7 @@ export function DirectoryView({
         </div>
       </section>
 
-      <section className="directory-records" aria-labelledby="locations-title">
+      <section className="directory-records" aria-labelledby="locations-title" data-motion-section>
         <header className="directory-results__header">
           <div>
             <h2 id="locations-title">Location records</h2>
@@ -105,7 +117,11 @@ export function DirectoryView({
         )}
       </section>
 
-      <aside className="boundary-note" aria-label="Important limitations">
+      <aside
+        className="boundary-note"
+        aria-label="Important limitations"
+        data-motion-section
+      >
         <ShieldCheck size={20} aria-hidden="true" />
         <p>
           <strong>Evidence, not emergency guidance.</strong> CoolPath does not claim that a location
