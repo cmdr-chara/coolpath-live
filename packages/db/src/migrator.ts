@@ -1,8 +1,20 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
 
 const migrationsDirectory = fileURLToPath(new URL("../migrations", import.meta.url));
+
+function migrationVersion(row: unknown): string {
+  if (
+    typeof row !== "object" ||
+    row === null ||
+    !("version" in row) ||
+    typeof row.version !== "string"
+  ) {
+    throw new Error("Migration metadata contains an invalid version row");
+  }
+  return row.version;
+}
 
 export function runMigrations(sqlite: Database.Database): void {
   sqlite.exec(`
@@ -16,7 +28,7 @@ export function runMigrations(sqlite: Database.Database): void {
     sqlite
       .prepare("SELECT version FROM _coolpath_migrations ORDER BY version")
       .all()
-      .map((row) => (row as { version: string }).version)
+      .map(migrationVersion)
   );
   const migrations = readdirSync(migrationsDirectory)
     .filter((name) => /^\d+_.+\.sql$/.test(name))
