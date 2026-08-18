@@ -1,0 +1,245 @@
+/* Alignment polish and restrained micro-interactions */
+.directory-view {
+  width: min(1180px, calc(100% - (var(--page-gutter) * 2)));
+}
+
+.directory-intro {
+  max-width: 920px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.directory-intro__lede {
+  margin-inline: auto;
+}
+
+.directory-meta {
+  justify-content: center;
+}
+
+.directory-search {
+  max-width: 820px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.directory-search__field {
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.directory-search__field:focus-within {
+  border-color: var(--brand);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.directory-records {
+  margin-inline: auto;
+}
+
+.boundary-note {
+  max-width: 900px;
+  margin-inline: auto;
+  justify-content: center;
+  text-align: center;
+}
+
+.site-record {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.site-record:hover {
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 0 7px 22px rgba(25, 42, 64, 0.055);
+  transform: translateY(-1px);
+}
+
+.text-action,
+.primary-action,
+.primary-nav a,
+.integrity-identity a {
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.text-action:hover,
+.primary-action:hover {
+  transform: translateY(-1px);
+}
+
+.text-action:active,
+.primary-action:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.text-action svg,
+.integrity-identity a svg,
+.directory-meta a svg {
+  transition: transform 160ms ease;
+}
+
+.text-action:hover svg,
+.integrity-identity a:hover svg,
+.directory-meta a:hover svg {
+  transform: translate(2px, -2px);
+}
+
+.status-dot {
+  animation: status-arrive 520ms ease-out both;
+}
+
+.technical-layout {
+  width: min(1180px, calc(100% - (var(--page-gutter) * 2)));
+  margin-inline: auto;
+}
+
+.integrity-header__title {
+  text-align: center;
+}
+
+.integrity-state {
+  justify-content: center;
+  text-align: left;
+}
+
+.integrity-identity dt,
+.integrity-identity dd {
+  text-align: center;
+}
+
+.pipeline-panel__header {
+  align-items: center;
+  text-align: center;
+}
+
+.pipeline-panel__header > p {
+  max-width: 440px;
+}
+
+.integrity-metrics > div,
+.pipeline-step,
+.quarantine-branch,
+.presenter-steps button {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.integrity-metrics > div:hover {
+  background: color-mix(in srgb, var(--brand) 3%, var(--surface));
+}
+
+.pipeline-step:hover {
+  background: color-mix(in srgb, var(--brand) 2.5%, var(--surface));
+}
+
+.pipeline-step:hover .pipeline-step__marker {
+  transform: scale(1.07);
+}
+
+.pipeline-step__marker {
+  transition: transform 160ms ease;
+}
+
+.presenter-steps button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(25, 42, 64, 0.05);
+}
+
+.presenter-steps button:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.technical-controls-motion {
+  display: contents;
+}
+
+@keyframes status-arrive {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 22%, transparent);
+    transform: scale(0.72);
+  }
+  65% {
+    box-shadow: 0 0 0 5px transparent;
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .integrity-header__title,
+  .integrity-identity dt,
+  .integrity-identity dd {
+    text-align: left;
+  }
+
+  .pipeline-panel__header {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 720px) {
+  .directory-intro,
+  .directory-search,
+  .boundary-note {
+    text-align: left;
+  }
+
+  .directory-meta {
+    justify-content: flex-start;
+  }
+
+  .boundary-note {
+    justify-content: flex-start;
+  }
+
+  .site-record:hover,
+  .text-action:hover,
+  .primary-action:hover,
+  .presenter-steps button:hover:not(:disabled) {
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot {
+    animation: none;
+  }
+
+  .site-record,
+  .text-action,
+  .primary-action,
+  .primary-nav a,
+  .integrity-identity a,
+  .directory-search__field,
+  .integrity-metrics > div,
+  .pipeline-step,
+  .pipeline-step__marker,
+  .quarantine-branch,
+  .presenter-steps button,
+  .text-action svg,
+  .integrity-identity a svg,
+  .directory-meta a svg {
+    transition: none;
+  }
+}
