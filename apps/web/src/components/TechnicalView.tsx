@@ -1,9 +1,8 @@
-import { ArrowDown, ArrowSquareOut, Check, GitDiff, ShieldWarning } from "@phosphor-icons/react";
+import { ArrowSquareOut, Check, GitDiff, ShieldWarning } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import type { CityResponse, Incident } from "../types";
 import { formatInstant, formatPercent, formatState, sourceHost } from "./format";
 import { statusContent } from "./status-content";
-import { StatusBanner } from "./StatusBanner";
 
 export function TechnicalView({
   city,
@@ -20,147 +19,144 @@ export function TechnicalView({
   const quarantined = Boolean(incident);
   const reportLabel = snapshot ? status.reportLabel : "No verified report";
 
+  const pipeline = [
+    {
+      key: "source",
+      label: "Source",
+      value: city.source.agencyName,
+      detail: sourceHost(city.source.canonicalUrl),
+      tone: "passed"
+    },
+    {
+      key: "collector",
+      label: "Scraper Studio",
+      value: run ? `${run.recordCount} rows returned` : "No completed run",
+      detail: city.source.collectorId,
+      tone: "passed"
+    },
+    {
+      key: "contract",
+      label: "Validation",
+      value: run ? formatState(run.outcome) : "Not available",
+      detail: `${formatPercent(run?.validationSummary.requiredFieldCompleteness)} required fields`,
+      tone: quarantined ? "failed" : "passed"
+    },
+    {
+      key: "published",
+      label: "Published snapshot",
+      value: snapshot ? `${snapshot.sites.length} trusted records` : "No snapshot",
+      detail: reportLabel,
+      tone: snapshot ? "passed" : "neutral"
+    }
+  ];
+
   return (
     <main id="main" className="technical-view">
-      <section className="page-width technical-intro" aria-labelledby="technical-title">
-        <div>
-          <p className="kicker">Source integrity / {city.city.displayName}</p>
-          <h1 id="technical-title">Publication control room</h1>
-          <p>
-            See exactly how source-published information becomes a trusted public snapshot—and how
-            malformed extraction is held for human review.
-          </p>
-        </div>
-        <dl className="technical-intro__facts">
-          <div>
-            <dt>Source</dt>
-            <dd>{city.source.agencyName}</dd>
+      <div className="page-width technical-layout">
+        <section className="integrity-header" aria-labelledby="technical-title">
+          <div className="integrity-header__title">
+            <p className="kicker">Source integrity / {city.city.displayName}</p>
+            <h1 id="technical-title">Source integrity</h1>
+            <p>{city.source.agencyName}</p>
           </div>
-          <div>
-            <dt>Collector ID</dt>
-            <dd>
-              <code>{city.source.collectorId}</code>
-            </dd>
-          </div>
-          <div>
-            <dt>Public report</dt>
-            <dd>{reportLabel}</dd>
-          </div>
-          <div>
-            <dt>Mode</dt>
-            <dd>{city.source.mode === "mock" ? "Deterministic fixture" : "Bright Data live"}</dd>
-          </div>
-        </dl>
-      </section>
 
-      <div className="page-width">
-        <StatusBanner state={city.source.status} hasSnapshot={Boolean(snapshot)} />
-        {controls}
-
-        <section className="pipeline-board" aria-labelledby="pipeline-title">
-          <header className="pipeline-board__header">
+          <div className={`integrity-state integrity-state--${status.tone}`} aria-live="polite">
+            <span className="status-dot" aria-hidden="true" />
             <div>
-              <p className="section-label">End-to-end publication path</p>
-              <h2 id="pipeline-title">Untrusted input has one route to public data.</h2>
+              <strong>{status.title}</strong>
+              <span>{reportLabel}</span>
+            </div>
+          </div>
+
+          <dl className="integrity-identity">
+            <div>
+              <dt>Collector</dt>
+              <dd>
+                <code>{city.source.collectorId}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Mode</dt>
+              <dd>{city.source.mode === "mock" ? "Deterministic fixture" : "Bright Data live"}</dd>
+            </div>
+            <div>
+              <dt>Source</dt>
+              <dd>
+                <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
+                  {sourceHost(city.source.canonicalUrl)} <ArrowSquareOut size={13} aria-hidden="true" />
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="integrity-metrics" aria-label="Latest publication metrics">
+          <div>
+            <span>Rows returned</span>
+            <strong>{run?.recordCount ?? 0}</strong>
+          </div>
+          <div>
+            <span>Published</span>
+            <strong>{snapshot?.sites.length ?? 0}</strong>
+          </div>
+          <div>
+            <span>Required fields</span>
+            <strong>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</strong>
+          </div>
+          <div>
+            <span>Reason codes</span>
+            <strong>{run?.reasonCodes.length ?? 0}</strong>
+          </div>
+        </section>
+
+        <section className="pipeline-panel" aria-labelledby="pipeline-title">
+          <header className="pipeline-panel__header">
+            <div>
+              <p className="section-label">Publication boundary</p>
+              <h2 id="pipeline-title">One route from source to public data</h2>
             </div>
             <p>
-              Public reads use <code>publishedSnapshotId</code>, never the newest candidate.
+              Public reads follow <code>publishedSnapshotId</code>, never the newest candidate.
             </p>
           </header>
 
-          <div className="pipeline-layout">
-            <ol className="pipeline-flow" aria-label="Source publication pipeline">
-              <li className="pipeline-node pipeline-node--source">
-                <span className="pipeline-node__step">01 / SOURCE</span>
-                <strong>{city.source.agencyName}</strong>
-                <dl>
-                  <div>
-                    <dt>Host</dt>
-                    <dd>{sourceHost(city.source.canonicalUrl)}</dd>
-                  </div>
-                  <div>
-                    <dt>Policy</dt>
-                    <dd>{city.source.policyVersion}</dd>
-                  </div>
-                </dl>
-                <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-                  Open source <ArrowSquareOut size={14} aria-hidden="true" />
-                </a>
-              </li>
-
-              <li className="pipeline-node pipeline-node--collector">
-                <span className="pipeline-node__step">02 / SCRAPER STUDIO</span>
-                <strong>{city.source.collectorId}</strong>
-                <dl>
-                  <div>
-                    <dt>Version</dt>
-                    <dd>{run?.collectorVersion ?? "Not available"}</dd>
-                  </div>
-                  <div>
-                    <dt>Rows returned</dt>
-                    <dd>{run?.recordCount ?? 0}</dd>
-                  </div>
-                </dl>
-              </li>
-
+          <ol className="pipeline-strip" aria-label="Source publication pipeline">
+            {pipeline.map((step, index) => (
               <li
-                className={`pipeline-node pipeline-node--contract ${
-                  quarantined ? "pipeline-node--failed" : "pipeline-node--passed"
-                }`}
+                key={step.key}
+                className={`pipeline-step pipeline-step--${step.tone}`}
               >
-                <span className="pipeline-node__step">03 / TYPED CONTRACT</span>
-                <strong>{run ? formatState(run.outcome) : "No completed run"}</strong>
-                <dl>
-                  <div>
-                    <dt>Required fields</dt>
-                    <dd>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</dd>
-                  </div>
-                  <div>
-                    <dt>Reason codes</dt>
-                    <dd>{run?.reasonCodes.length ?? 0}</dd>
-                  </div>
-                </dl>
+                <span className="pipeline-step__marker" aria-hidden="true">
+                  {step.tone === "failed" ? "!" : step.tone === "passed" ? "✓" : index + 1}
+                </span>
+                <div>
+                  <span className="pipeline-step__label">{step.label}</span>
+                  <strong>{step.value}</strong>
+                  <small>{step.detail}</small>
+                </div>
               </li>
+            ))}
+          </ol>
 
-              <li className="pipeline-node pipeline-node--published">
-                <span className="pipeline-node__step">04 / PUBLISHED SNAPSHOT</span>
-                <strong>
-                  {snapshot ? `${snapshot.sites.length} trusted records` : "No snapshot"}
-                </strong>
-                <dl>
-                  <div>
-                    <dt>Public state</dt>
-                    <dd>{reportLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>Observed</dt>
-                    <dd>{formatInstant(snapshot?.observedAt, city.city.timezone)}</dd>
-                  </div>
-                </dl>
-              </li>
-            </ol>
-
-            <aside
-              className={`quarantine-ledger ${
-                quarantined ? "quarantine-ledger--active" : "quarantine-ledger--idle"
-              }`}
-              aria-label="Quarantine branch"
-            >
-              <ArrowDown size={20} aria-hidden="true" />
-              <div>
-                <span>CONTRACT FAILURE BRANCH</span>
-                <strong>{quarantined ? "Candidate quarantined" : "Quarantine clear"}</strong>
-                <p>
-                  {quarantined
-                    ? `${
-                        incident?.reasonCodes.length ?? 0
-                      } validation reasons. Published snapshot protected.`
-                    : "No candidate is currently held outside the publication path."}
-                </p>
-              </div>
-            </aside>
-          </div>
+          <aside
+            className={`quarantine-branch ${
+              quarantined ? "quarantine-branch--active" : "quarantine-branch--idle"
+            }`}
+            aria-label="Quarantine branch"
+          >
+            <ShieldWarning size={17} aria-hidden="true" />
+            <div>
+              <strong>{quarantined ? "Candidate quarantined" : "Quarantine clear"}</strong>
+              <span>
+                {quarantined
+                  ? `${incident?.reasonCodes.length ?? 0} validation reasons. Published snapshot protected.`
+                  : "No candidate is currently held outside the publication path."}
+              </span>
+            </div>
+          </aside>
         </section>
+
+        {controls}
 
         <div className="operations-grid">
           <section
@@ -169,9 +165,9 @@ export function TechnicalView({
           >
             <header className="ledger-title">
               {incident ? (
-                <ShieldWarning size={22} aria-hidden="true" />
+                <ShieldWarning size={20} aria-hidden="true" />
               ) : (
-                <Check size={22} aria-hidden="true" />
+                <Check size={20} aria-hidden="true" />
               )}
               <div>
                 <span>Current incident</span>
@@ -216,7 +212,7 @@ export function TechnicalView({
           <section className="run-register" aria-labelledby="run-title">
             <header>
               <span>Latest collector run</span>
-              <h2 id="run-title">Bounded verification facts</h2>
+              <h2 id="run-title">Verification facts</h2>
             </header>
             <dl>
               <div>
@@ -226,10 +222,6 @@ export function TechnicalView({
               <div>
                 <dt>Record count</dt>
                 <dd>{run?.recordCount ?? 0}</dd>
-              </div>
-              <div>
-                <dt>Required completeness</dt>
-                <dd>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</dd>
               </div>
               <div>
                 <dt>Optional claim coverage</dt>
@@ -252,7 +244,7 @@ export function TechnicalView({
         {incident?.healDiff.length ? (
           <section className="repair-review" aria-labelledby="repair-title">
             <header className="ledger-title">
-              <GitDiff size={22} aria-hidden="true" />
+              <GitDiff size={20} aria-hidden="true" />
               <div>
                 <span>Human review / selector diff</span>
                 <h2 id="repair-title">Repair only the failed fields.</h2>
@@ -287,8 +279,8 @@ export function TechnicalView({
 
         <section className="timeline-register" aria-labelledby="timeline-title">
           <header>
-            <span>Recovery timeline</span>
-            <h2 id="timeline-title">Every publication decision leaves a trace.</h2>
+            <span>Activity</span>
+            <h2 id="timeline-title">Publication history</h2>
           </header>
           {city.timeline.length === 0 ? (
             <p className="ledger-empty">No source events have been recorded yet.</p>

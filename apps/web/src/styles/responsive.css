@@ -10,48 +10,24 @@
     justify-self: start;
   }
 
-  .technical-intro {
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .integrity-header {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
   }
 
-  .technical-intro__facts {
-    max-width: 760px;
+  .integrity-identity {
+    grid-column: 1 / 3;
+  }
+
+  .pipeline-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .presenter-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pipeline-flow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pipeline-node:nth-child(2)::after {
-    display: none;
-  }
-
-  .pipeline-node:nth-child(3)::before {
-    position: absolute;
-    top: -34px;
-    left: 50%;
-    width: 1px;
-    height: 20px;
-    background: var(--technical-line);
-    content: "";
-  }
-
-  .quarantine-ledger {
-    width: calc(50% - 24px);
-    margin-left: calc(50% + 24px);
-  }
-
   .operations-grid {
     grid-template-columns: 1fr;
-  }
-
-  .run-register {
-    max-width: 760px;
   }
 }
 
@@ -61,7 +37,8 @@
     --page-gutter: 16px;
   }
 
-  .page-width {
+  .page-width,
+  .technical-layout {
     width: calc(100% - 32px);
   }
 
@@ -124,7 +101,6 @@
     line-height: 16px;
   }
 
-  .directory-meta__report,
   .directory-meta__separator {
     display: none;
   }
@@ -256,41 +232,99 @@
     margin-top: 28px;
   }
 
-  /* Technical view remains phase 2; keep current responsive behavior stable. */
-  .technical-intro {
-    padding-top: 30px;
-    padding-bottom: 26px;
+  /* Technical console */
+  .technical-view {
+    padding: 20px 0 54px;
   }
 
-  .technical-intro h1 {
-    font-size: 42px;
-    line-height: 48px;
-    letter-spacing: 0;
-  }
-
-  .technical-intro__facts {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .technical-intro__facts > div {
-    min-height: 76px;
-    padding: 10px;
-  }
-
-  .technical-intro__facts dd {
-    font-size: 11px;
-  }
-
-  .presenter-console > header,
-  .pipeline-board__header {
+  .integrity-header {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
-  .presenter-console h2 {
-    font-size: 24px;
-    line-height: 30px;
-    letter-spacing: 0;
+  .integrity-header__title h1 {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .integrity-state {
+    min-height: 44px;
+  }
+
+  .integrity-identity {
+    grid-column: auto;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+  }
+
+  .integrity-identity > div:first-child {
+    grid-column: 1 / 3;
+  }
+
+  .integrity-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 14px;
+  }
+
+  .integrity-metrics > div {
+    min-height: 58px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .integrity-metrics > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .integrity-metrics > div:nth-child(3),
+  .integrity-metrics > div:nth-child(4) {
+    border-bottom: 0;
+  }
+
+  .integrity-metrics strong {
+    font-size: 17px;
+    line-height: 22px;
+  }
+
+  .pipeline-panel {
+    margin-top: 14px;
+    padding: 12px;
+  }
+
+  .pipeline-panel__header {
+    display: block;
+  }
+
+  .pipeline-panel__header > p {
+    margin-top: 5px;
+    text-align: left;
+  }
+
+  .pipeline-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .pipeline-step {
+    min-height: 62px;
+    padding: 9px;
+  }
+
+  .quarantine-branch {
+    width: 100%;
+  }
+
+  .presenter-console {
+    margin-top: 14px;
+    padding: 12px;
+  }
+
+  .presenter-console > header {
+    display: block;
+  }
+
+  .presenter-console > header > p {
+    margin-top: 4px;
+    text-align: left;
   }
 
   .presenter-steps {
@@ -298,55 +332,13 @@
   }
 
   .presenter-steps button {
-    min-height: 76px;
-  }
-
-  .pipeline-board {
-    margin-right: calc(var(--page-gutter) * -1);
-    margin-left: calc(var(--page-gutter) * -1);
-    padding: 24px 16px 30px;
-  }
-
-  .pipeline-board__header h2 {
-    font-size: 30px;
-    line-height: 36px;
-    letter-spacing: 0;
-  }
-
-  .pipeline-flow {
-    grid-template-columns: 1fr;
-    gap: 34px;
-  }
-
-  .pipeline-node {
-    min-height: 200px;
-  }
-
-  .pipeline-node:not(:last-child)::after {
-    top: auto;
-    right: 50%;
-    bottom: -29px;
-    transform: translateX(50%) rotate(90deg);
-  }
-
-  .pipeline-node:nth-child(3)::before {
-    display: none;
-  }
-
-  .quarantine-ledger {
-    width: auto;
-    margin-top: 44px;
-    margin-left: 0;
-  }
-
-  .quarantine-ledger::before {
-    top: -45px;
-    left: 50%;
-    height: 44px;
+    min-height: 58px;
   }
 
   .operations-grid {
-    margin-top: 52px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 18px;
   }
 
   .incident-meta {
@@ -355,7 +347,12 @@
 
   .run-register > dl > div {
     grid-template-columns: 1fr;
-    gap: 5px;
+    gap: 2px;
+  }
+
+  .repair-review,
+  .timeline-register {
+    margin-top: 18px;
   }
 
   .timeline-event {
@@ -364,11 +361,11 @@
   }
 
   .timeline-event time {
-    padding-top: 14px;
+    padding-top: 10px;
   }
 
   .timeline-event > div {
-    padding-left: 20px;
+    margin-left: 4px;
   }
 }
 
