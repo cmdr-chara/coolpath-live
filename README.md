@@ -2,11 +2,24 @@
 
 > Source-published cooling information that stays trustworthy when the web changes.
 
-CoolPath Live is an evidence-first directory of publicly reported cooling centres and heat-relief locations. It was built for the WeMakeDevs x Bright Data [Into the Scrape-Verse](https://www.wemakedevs.org/hackathons/scrape-verse) hackathon.
+CoolPath Live is an evidence-first directory of publicly reported cooling centres and heat-relief locations, built for the WeMakeDevs x Bright Data [Into the Scrape-Verse](https://www.wemakedevs.org/hackathons/scrape-verse) hackathon.
 
-Public source pages change without warning. An HTTP 200 response can still contain zero facilities, malformed fields or stale operational copy. CoolPath puts Bright Data Scraper Studio on the critical path, validates every collection against a typed contract and publishes only a trusted snapshot.
+A scraper returning HTTP 200 is not enough. A page can still return zero facilities, malformed fields, stale operational copy or a subtly changed layout. CoolPath puts Bright Data Scraper Studio on the critical path, validates every collection against a typed contract and exposes only the last trusted snapshot to the public UI.
 
 CoolPath is not emergency or medical guidance. It does not claim that a location is safe, nearest, open now, currently available, suitable for a medical condition or reachable by a safe route.
+
+## Submission proof
+
+- **Custom Scraper Studio collector:** `c_msxe8lsm2630ya30wu`
+- **Production source:** [Pennsylvania 211 — Philadelphia cooling-centre search](https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10)
+- **Downstream path:** Scraper Studio → PA211 normalizer → canonical validation → SQLite publication boundary → Fastify API → React UI
+- **Verified pre-refactor real baseline:** 25 provider records, 0 failed crawls, 23 accepted locations, `publishable`, no reason codes, `HEALTHY`, 23-location published snapshot
+- **Final post-refactor live verification:** intentionally pending one deliberate rerun of the same Collector ID; the repository does not claim that this rerun has already happened
+- **Evidence ledger:** [docs/evidence/bright-data.md](docs/evidence/bright-data.md)
+- **Collector operating notes:** [CODEX.md](CODEX.md)
+- **AI-assistance disclosure:** [AI_USAGE.md](AI_USAGE.md)
+
+The historical numbers above describe one verified real run only. They are not a claim that Pennsylvania 211 always contains exactly 25 provider rows or 23 accepted locations.
 
 ## What is implemented
 
@@ -16,22 +29,22 @@ CoolPath is not emergency or medical guidance. It does not claim that a location
 - Fastify API exposing only published snapshots, with semantic ETags, conditional requests, security headers, source allowlists and sanitized errors.
 - Deterministic TTL reconciliation that marks expired trusted data historical without launching a provider request or deleting the snapshot.
 - Per-source single-flight coordination that prevents overlapping checks and healing mutations while allowing independent sources to proceed.
-- Separate lightweight liveness and database/snapshot readiness signals, non-blocking real-mode startup and graceful process shutdown.
+- Separate liveness and readiness signals, non-blocking real-mode startup and graceful process shutdown.
 - Real Bright Data Scraper Studio API client plus a deterministic mock client. Mock mode is always labelled.
-- Manual self-healing review: detect drift, quarantine output, protect the baseline, prepare a field-specific prompt, display the selector diff, approve, re-run the same collector and validate before publishing.
+- Manual healing review flow: detect drift, quarantine output, protect the baseline, prepare a field-specific repair, display the selector diff, approve, rerun the same collector and validate before publication.
 - Responsive React civic-evidence interface with public and technical views, URL-backed navigation, source-state rendering, keyboard-visible focus and evidence drawers.
 - Unit, integration and Playwright coverage with no live network calls in CI.
-- A separate low-rate Pennsylvania 211 live smoke command for manually configured Bright Data credentials.
+- A separate low-rate Pennsylvania 211 live smoke command for deliberate manual verification.
 
 ## Hackathon fit
 
-The official event page says every submission is considered for all three tracks. CoolPath treats them as one product:
+CoolPath treats the three project tracks as one system:
 
-- **Best Use of Bright Data:** Scraper Studio collection and self-healing are central to publication and recovery.
-- **Best UI:** the public list remains calm and useful during degradation; the technical view makes failure and recovery legible.
-- **Best Clean Code:** domain, source, database, API and UI responsibilities are narrow and independently testable.
+- **Best Use of Bright Data:** Scraper Studio is the production ingestion boundary, not a side demo. The `c_*` collector feeds a real API/database/UI pipeline.
+- **Best UI:** the public directory stays calm and useful during degradation while the technical view makes provenance, quarantine and recovery legible.
+- **Best Clean Code:** domain, source-adapter, database, API and UI responsibilities are explicit, narrow and independently testable.
 
-The event currently lists six equally weighted judging criteria: impact, creativity, technical excellence, Scraper Studio use, reliability/self-healing and presentation. See [the demo script](docs/demo-script.md) for the intended judging narrative.
+The event evaluates impact, creativity, technical excellence, Scraper Studio use, reliability/self-healing and presentation. The repository is structured so those claims can be inspected independently rather than inferred from the demo.
 
 ## Architecture
 
@@ -47,23 +60,29 @@ allowlisted public HTML
   -> public API and UI
 ```
 
-The newest candidate is never a public read. Public endpoints follow the source's `publishedSnapshotId` pointer. See [docs/architecture.md](docs/architecture.md) for states, trust boundaries and recovery sequencing.
+The newest candidate is never automatically the public truth. Public endpoints follow the source's `publishedSnapshotId` pointer, so malformed or suspicious fresh data cannot overwrite the last trusted snapshot.
+
+See [docs/architecture.md](docs/architecture.md) for states, trust boundaries and recovery sequencing.
+
+## Reliability model
+
+A healthy collection is parsed, normalized and validated before it can be promoted. Hard contract failures quarantine immediately. Soft anomalies also block automatic publication pending review. Provider failures such as 403, 429, timeout or DNS errors are treated as inconclusive rather than mislabeled as layout drift.
+
+When a collection is quarantined, the previous published snapshot remains available. A repair is not trusted merely because extraction starts returning values again: the same canonical validation and publication gates run after approval and rerun.
+
+The deterministic mock flow exists to make this lifecycle reproducible without spending Bright Data credits or pretending that a real website changed on command.
 
 ## Source acceptance
 
-Five public sources — three municipal sources and two nonprofit sources — were reviewed on 2026-08-17 before adapter work:
+Pennsylvania 211 is the active real source because Bright Data accepted its public Philadelphia directory for the hackathon account while the reviewed government-domain candidates required additional provider verification. The production adapter makes that exception explicit rather than bypassing Bright Data policy.
 
-1. [Pennsylvania 211](https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10) - primary configurable source.
-2. [Arizona Faith Network](https://www.arizonafaithnetwork.org/heatrelief) - read-only candidate; blocked by Bright Data compliance during collector generation.
-3. [City of Fresno](https://www.fresno.gov/citymanager/cooling-and-warming-centers/) - read-only candidate; Bright Data requires business verification for the government domain.
-4. [City of Long Beach](https://www.longbeach.gov/park/business-operations/about/cooling-center-locations/) - read-only candidate.
-5. [City of St. Louis](https://www.stlouis-mo.gov/live-work/summer/cooling-centers.cfm) - read-only candidate.
+The bounded PA211 collector reads public facility information only, excludes non-location/hotline results and duplicates, restricts evidence links to the `search.pa211.org` HTTPS origin and assigns observation time server-side.
 
-Pennsylvania 211 is the real collector because Bright Data accepted its public Philadelphia directory without business KYC. The bounded first page exposes named facilities, explicit public addresses, source descriptions and stable evidence links. The repository does not fabricate live records. The bundled Demo City records are synthetic, clearly labelled and used only to prove deterministic layout drift. Review the full [source policy and acceptance checklist](docs/source-policy.md).
+The full review of Pennsylvania 211, Arizona Faith Network, Fresno, Long Beach, St. Louis and the rejected Lakewood source is in [docs/source-policy.md](docs/source-policy.md).
 
 ## Run locally
 
-Requirements: Node.js 22 or newer and pnpm 11. The verified development environment used Node 24.
+Requirements: Node.js 22 or newer and pnpm 11. CI uses Node 24.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -83,14 +102,14 @@ curl --fail http://127.0.0.1:8787/readyz
 
 `/healthz` proves that the process can answer HTTP. `/readyz` separately reports database usability, source initialization and trusted-snapshot availability. Temporary Bright Data unavailability does not make liveness fail.
 
-## Reproduce layout drift
+## Reproduce drift safely
 
 The UI exposes four deterministic controls in mock mode:
 
 1. **Healthy baseline** resets and publishes fixture layout v1.
-2. **Simulate drift** switches the same URL to layout v2. Broken extraction is quarantined and the three-record baseline stays public.
+2. **Simulate drift** switches the same fixture URL to layout v2. Broken extraction is quarantined and the trusted baseline stays public.
 3. **Prepare repair** creates a field-specific healing prompt and selector diff.
-4. **Approve and re-run** applies the mock repair, re-runs the same collector identity, validates the complete contract and publishes recovery.
+4. **Approve and re-run** applies the mock repair, reruns the same collector identity, validates the complete contract and publishes recovery.
 
 For a terminal-only staged run:
 
@@ -98,20 +117,35 @@ For a terminal-only staged run:
 pnpm demo
 ```
 
-This intentionally pauses at manual review. It never claims that Bright Data healing is instantaneous or fully autonomous.
+This flow is explicitly synthetic and never claims that Bright Data healing is instantaneous or fully autonomous.
 
 ## Configure real Bright Data
 
-Create a Pennsylvania 211 collector in Scraper Studio that outputs:
+The production Scraper Studio collector used by CoolPath is:
+
+```text
+c_msxe8lsm2630ya30wu
+```
+
+It returns the source fields:
 
 - `facility_name`
 - `address`
 - `service_text`
 - `evidence_url`
 
-Set `COOLPATH_MODE=real`, `BRIGHT_DATA_API_TOKEN`, `PRIMARY_COLLECTOR_ID` and a random `OPERATOR_API_TOKEN` of at least 32 characters in `.env`. Credentials remain server-side and logs redact authorization fields. Observation timestamps are assigned server-side instead of trusting generated collector values; detail links are resolved and restricted to the `search.pa211.org` HTTPS origin.
+The Collector ID is not a secret. API credentials and operator tokens are secrets.
 
-Real-mode startup is credit-safe by default. `AUTO_START_REAL_CHECK=false` seeds the allowlisted source and starts HTTP without launching Bright Data. A scheduler or operator can intentionally run one check after the service is listening:
+Copy `.env.example` to `.env`, keep the pinned Collector ID and set:
+
+```dotenv
+COOLPATH_MODE=real
+AUTO_START_REAL_CHECK=false
+BRIGHT_DATA_API_TOKEN=<local secret>
+OPERATOR_API_TOKEN=<random local secret, at least 32 characters>
+```
+
+Real-mode startup is credit-safe by default. With `AUTO_START_REAL_CHECK=false`, the API seeds the allowlisted source and starts without launching Bright Data. An operator can then intentionally perform one collection:
 
 ```bash
 curl --fail-with-body \
@@ -120,21 +154,17 @@ curl --fail-with-body \
   http://127.0.0.1:8787/api/operator/sources/pa211-philadelphia-cooling/check
 ```
 
-Set `AUTO_START_REAL_CHECK=true` only when one background initial check is desired for an empty database. The task is caught and logged safely, never blocks `/healthz`, and does not run when a trusted snapshot already exists. Tests and CI always inject deterministic clients and never contact Bright Data.
+For an isolated final verification, use `DATABASE_URL=:memory:`. After that one provider run, inspect `/readyz` and `/api/cities/philadelphia` without triggering another collection.
 
-The client follows Bright Data's documented API flow:
-
-- [Scraper Studio AI flow overview](https://docs.brightdata.com/api-reference/scraper-studio-api/ai-flow/overview)
-- [CLI build, heal and approve flow](https://docs.brightdata.com/datasets/scraper-studio/build-with-the-cli)
-- [Self-healing job progress](https://docs.brightdata.com/api-reference/scraper-studio-api/ai-flow/self-healing-job-progress)
-
-Run a single manual low-rate smoke check:
+A separate adapter-only smoke command also exists:
 
 ```bash
 pnpm smoke:live
 ```
 
-The smoke command does not publish or mutate the application database. It runs the configured collector, normalizes the result and prints a bounded validation summary without raw records or credentials.
+It runs the configured collector, normalizes the result and prints a bounded validation summary without publishing to the application database. When minimizing paid runs, choose either the end-to-end operator check or the smoke command rather than running both unnecessarily.
+
+The client follows Bright Data's documented Scraper Studio API and healing flow. See [CODEX.md](CODEX.md) for the credit-safe operating rules.
 
 ## Public API
 
@@ -144,13 +174,9 @@ The smoke command does not publish or mutate the application database. It runs t
 - `GET /healthz`
 - `GET /readyz`
 
-Public representation ETags cover the meaningful city, source state, trusted snapshot, latest run, active incident and bounded timeline. The volatile response `generatedAt` value is deliberately excluded. Public reads use `Cache-Control: public, max-age=0, must-revalidate`; a matching `If-None-Match` receives `304`. A freshness transition, drift incident or recovery therefore invalidates cached civic status instead of allowing cached `HEALTHY` metadata to conceal a degraded state.
+Public representation ETags cover meaningful city, source-state, trusted-snapshot, latest-run, active-incident and bounded-timeline data. The volatile response `generatedAt` value is excluded. Public reads use `Cache-Control: public, max-age=0, must-revalidate`; a matching `If-None-Match` receives `304`.
 
-Mock-only operator endpoints live under `/api/demo/*`; they accept no URLs and are not registered in real mode. There is no generic proxy or arbitrary scraping endpoint.
-
-Real-mode check, healing and approval endpoints live under `/api/operator/sources/:sourceId/*`. They accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`. No URL can be supplied by the caller. Concurrent mutations for the same source return a sanitized `409`; separate sources retain independent coordination.
-
-Successful operator checks return bounded aggregate coverage counts. The latest-run metadata persists the same counts without exposing rejected rows or raw provider payloads. Counting definitions are documented in [docs/source-policy.md](docs/source-policy.md).
+Mock-only operator endpoints live under `/api/demo/*`; they accept no URLs and are not registered in real mode. Real-mode check, healing and approval endpoints live under `/api/operator/sources/:sourceId/*`, accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`.
 
 ## Quality gates
 
@@ -158,23 +184,13 @@ Hard contract failures quarantine immediately: zero rows, invalid schema, missin
 
 Soft anomalies also block automatic publication pending review: major yield drop, widespread optional-field loss, suspicious content replacement, stable-identity replacement and unexpected record growth.
 
-403, 429, timeout, DNS and temporary provider failures are inconclusive. They are never presented as proof of layout drift.
+A successful replacement publication resolves any active incident in the same persistence transaction. Ordinary passing checks return the source to `HEALTHY`; a validated run after an approved healing workflow records `RECOVERED`. Quarantined and inconclusive runs preserve the active incident and last trusted snapshot.
 
-A successful replacement publication resolves any active incident in the same persistence transaction. An ordinary passing check returns the source to `HEALTHY`; a validated run after an approved healing workflow records `RECOVERED`. Quarantined and inconclusive runs preserve the incident and last trusted snapshot.
+## Database and migrations
 
-## Database migrations
+`packages/db/migrations/*.sql` is the authoritative schema history. `CoolPathRepository` enables foreign keys and WAL, creates `_coolpath_migrations` and applies unapplied numbered SQL files transactionally in lexical order.
 
-`packages/db/migrations/*.sql` is the authoritative schema history. `CoolPathRepository` enables foreign keys and WAL, creates `_coolpath_migrations`, and applies unapplied numbered SQL files transactionally in lexical order. Schema SQL is not duplicated in application code.
-
-For local development and deployment:
-
-1. Back up the persistent SQLite database before deploying a schema-changing release.
-2. Add a new numbered migration; do not rewrite a migration already recorded by deployed databases.
-3. Run the normal verification commands against an empty database and a representative existing database.
-4. Deploy the code with the `packages/db/migrations` directory intact.
-5. Start the API normally. Repository initialization applies pending migrations idempotently before serving data.
-
-No reset or destructive migration command is part of startup. A legacy database that predates `_coolpath_migrations` keeps existing rows while the idempotent initial schema is registered.
+There is no destructive reset or schema rewrite in normal startup. See [CONTRIBUTING.md](CONTRIBUTING.md) for migration and change recipes.
 
 ## Verification
 
@@ -189,24 +205,26 @@ pnpm verify
 git diff --check
 ```
 
-Pull-request and branch tests use sanitized deterministic fixtures and do not perform live HTTP requests.
+CI uses deterministic fixtures and never contacts Bright Data. That makes CI safe and repeatable, but it also means green CI is not a substitute for the deliberately separate final live-provider verification recorded in [docs/evidence/bright-data.md](docs/evidence/bright-data.md).
 
 ## Privacy and legal boundaries
 
-CoolPath stores public facility information only. It has no accounts, geolocation, stored client IPs, analytics, notifications, crowdsourced reports or user-submitted URLs. It deliberately excludes staff names, phone numbers and email addresses. Scraped content is untrusted data and is never rendered as HTML or sent to an external model without explicit configuration.
+CoolPath stores public facility information only. It has no accounts, geolocation, stored client IPs, analytics, notifications, crowdsourced reports or user-submitted URLs. It deliberately excludes staff names, phone numbers and email addresses.
 
-Source data remains attributed to its published source. Source terms and robots notes must be rechecked when `sourcePolicyVersion` changes.
+Scraped content is treated as untrusted data, never rendered as HTML and never sent to an external model without explicit configuration. Source data remains attributed to its published source. Source terms and robots notes must be rechecked when `sourcePolicyVersion` changes.
 
 ## Repository map
 
 ```text
 apps/web                 React, Vite and TanStack Query UI
-apps/api                 Fastify API, ingestion and demo orchestration
+apps/api                 Fastify API, ingestion and operator/demo routes
 packages/domain          Canonical schemas, quality gates and state machine
 packages/source-adapters Bright Data clients, normalizers and source manifest
 packages/db              Drizzle schema, migrations and snapshot repository
 packages/test-fixtures   Deterministic layout v1/v2 and golden records
-docs                     Architecture, source policy, frontend direction and demo script
+docs                     Architecture, source policy, evidence and audit notes
 ```
+
+For a stranger picking up the repository, start with [CONTRIBUTING.md](CONTRIBUTING.md). AI-assisted development is disclosed in [AI_USAGE.md](AI_USAGE.md).
 
 MIT licensed. See [LICENSE](LICENSE).
