@@ -12,7 +12,6 @@ import {
   type HealResult
 } from "@coolpath/source-adapters";
 import {
-  DEMO_CITY_ID,
   DEMO_COLLECTOR_ID,
   DEMO_EVIDENCE_URL,
   DEMO_SOURCE_ID,
@@ -23,20 +22,14 @@ import { seedSourceConfiguration } from "./seed.js";
 
 function deferred<T>() {
   let resolvePromise: ((value: T) => void) | undefined;
-  let rejectPromise: ((reason: unknown) => void) | undefined;
-  const promise = new Promise<T>((resolve, reject) => {
+  const promise = new Promise<T>((resolve) => {
     resolvePromise = resolve;
-    rejectPromise = reject;
   });
   return {
     promise,
     resolve(value: T): void {
       if (!resolvePromise) throw new Error("Deferred promise was not initialized");
       resolvePromise(value);
-    },
-    reject(reason: unknown): void {
-      if (!rejectPromise) throw new Error("Deferred promise was not initialized");
-      rejectPromise(reason);
     }
   };
 }
@@ -229,7 +222,9 @@ describe("per-source operation coordination", () => {
     const failure = new TypeError("fetch failed");
     const client = new QueueClient();
     client.enqueue(() => Promise.reject(failure));
-    client.enqueue((input) => Promise.resolve(healthyResult(input, "2026-08-17T12:05:00.000Z")));
+    client.enqueue((input) =>
+      Promise.resolve(healthyResult(input, "2026-08-17T12:05:00.000Z"))
+    );
     const service = new IngestionService(repository, client);
 
     await expect(service.runSource(DEMO_SOURCE_ID)).rejects.toBe(failure);
