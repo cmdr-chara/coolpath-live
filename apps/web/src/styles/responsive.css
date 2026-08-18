@@ -1,5 +1,5 @@
 /* Tablet */
-@media (max-width: 1050px) {
+@media (max-width: 1050px){
   .site-record {
     grid-template-columns: minmax(240px, 1fr) minmax(280px, 1fr);
     gap: 16px 24px;
@@ -32,7 +32,7 @@
 }
 
 /* Mobile */
-@media (max-width: 720px) {
+@media (max-width: 720px){
   :root {
     --page-gutter: 16px;
   }
@@ -370,13 +370,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
+  html{
     scroll-behavior: auto;
   }
 
   *,
-  *::before,
-  *::after {
+*::before,
+*::after{
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
