@@ -66,7 +66,22 @@ After the cleanup, Chromium rendered the same deterministic mock states used by 
 
 All five post-cleanup captures have the same dimensions as their pre-cleanup baselines. Side-by-side review found no structural layout shift, missing content, changed hierarchy, or container regression. The visible differences in the technical captures are expected dynamic mock values such as run timestamps and generated IDs, not presentation changes.
 
-The temporary visual-regression workflow uploaded the evidence artifact and removed itself from the branch. Normal CI/Playwright remains the final merge gate.
+The temporary visual-regression workflow uploaded the evidence artifact and removed itself from the branch.
+
+## Final verification
+
+The final cleanup candidate passed the standard pull-request verification suite against `main`:
+
+- strict TypeScript/typecheck;
+- 77/77 unit and integration tests across 9 files;
+- ESLint;
+- Prettier;
+- production build;
+- `pnpm verify`;
+- `git diff --check`;
+- `git diff --check origin/main...HEAD`;
+- Playwright 10/10 across the configured desktop/mobile projects;
+- aggregate `CoolPath / full verification` job successful.
 
 ## Preserved boundaries
 
