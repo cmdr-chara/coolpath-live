@@ -1,5 +1,5 @@
 import { type CoolPathRepository } from "@coolpath/db";
-import { MockScraperStudioClient } from "@coolpath/source-adapters";
+import type { MockScraperStudioClient } from "@coolpath/source-adapters";
 import { DEMO_SOURCE_ID } from "@coolpath/test-fixtures";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
