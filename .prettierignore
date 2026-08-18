@@ -1,3 +1,4 @@
-# Protected frontend paths are inherited from main and intentionally unchanged here.
+# These current-main frontend files predate this backend-only branch and fail the repository-wide formatter.
+# Preserve them byte-for-byte so backend verification does not introduce frontend diffs.
 apps/web/src/App.tsx
 docs/frontend-redesign.md
