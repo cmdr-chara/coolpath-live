@@ -1,5 +1,6 @@
 import { ArrowSquareOut, MagnifyingGlass, ShieldCheck } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
+import philadelphiaPark from "../assets/philadelphia-park.svg";
 import { useEntranceMotion } from "../hooks/useEntranceMotion";
 import type { CityResponse, CoolingSite } from "../types";
 import { formatInstant } from "./format";
@@ -29,64 +30,67 @@ export function DirectoryView({
 
   return (
     <main id="main" ref={viewRef} className="page-width directory-view">
-      <section className="directory-intro" aria-labelledby="directory-title" data-motion-section>
-        <p className="kicker">
-          {city.city.displayName} / {city.city.region}
-        </p>
-        <h1 id="directory-title">{city.city.displayName} cooling locations</h1>
-        <p className="directory-intro__lede">
-          {sites.length} source-backed {sites.length === 1 ? "location" : "locations"} published
-          from {city.source.agencyName}. CoolPath does not infer whether a location is open or
-          currently available.
-        </p>
-
-        <div
-          className={`directory-meta directory-meta--${status.tone}`}
-          aria-label="Directory verification status"
-          aria-live="polite"
-        >
-          <span className="directory-meta__status">
-            <span className="status-dot" aria-hidden="true" />
-            <strong>{status.title}</strong>
-          </span>
-          <span className="directory-meta__report">{reportLabel}</span>
-          <span className="directory-meta__separator" aria-hidden="true" />
-          <span>
-            {city.snapshot ? (
-              <>
-                Updated{" "}
-                <time dateTime={city.snapshot.observedAt}>
-                  {formatInstant(city.snapshot.observedAt, city.city.timezone)}
-                </time>
-              </>
-            ) : (
-              "Not yet verified"
-            )}
-          </span>
-          <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-            {city.source.agencyName} <ArrowSquareOut size={14} aria-hidden="true" />
-          </a>
+      <section className="directory-hero" aria-labelledby="directory-title" data-motion-section>
+        <div className="directory-hero__art" aria-hidden="true">
+          <img src={philadelphiaPark} alt="" />
         </div>
-      </section>
 
-      <section
-        className="directory-search"
-        aria-labelledby="directory-search-label"
-        data-motion-section
-      >
-        <label id="directory-search-label" htmlFor="directory-search-input">
-          Search published locations
-        </label>
-        <div className="directory-search__field">
-          <MagnifyingGlass size={18} aria-hidden="true" />
-          <input
-            id="directory-search-input"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            placeholder="Search by facility or address"
-            autoComplete="off"
-          />
+        <div className="directory-hero__copy">
+          <p className="kicker">
+            {city.city.displayName} / {city.city.region}
+          </p>
+          <h1 id="directory-title">Cooling locations you can count on</h1>
+          <p className="directory-intro__lede">
+            {sites.length} source-backed {sites.length === 1 ? "location" : "locations"} published
+            from {city.source.agencyName}. CoolPath shows evidence without guessing whether a place
+            is open or currently available.
+          </p>
+
+          <div
+            className={`directory-meta directory-meta--${status.tone}`}
+            aria-label="Directory verification status"
+            aria-live="polite"
+          >
+            <span className="directory-meta__status">
+              <span className="status-dot" aria-hidden="true" />
+              <strong>{status.title}</strong>
+            </span>
+            <span className="directory-meta__report">{reportLabel}</span>
+            <span className="directory-meta__separator" aria-hidden="true" />
+            <span>
+              {city.snapshot ? (
+                <>
+                  Updated{" "}
+                  <time dateTime={city.snapshot.observedAt}>
+                    {formatInstant(city.snapshot.observedAt, city.city.timezone)}
+                  </time>
+                </>
+              ) : (
+                "Not yet verified"
+              )}
+            </span>
+            <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
+              Source: {city.source.agencyName} <ArrowSquareOut size={14} aria-hidden="true" />
+            </a>
+          </div>
+
+          <div className="directory-search">
+            <label id="directory-search-label" htmlFor="directory-search-input">
+              Search published locations
+            </label>
+            <div className="directory-search__field">
+              <MagnifyingGlass size={18} aria-hidden="true" />
+              <input
+                id="directory-search-input"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.currentTarget.value)}
+                placeholder="Search by facility or address"
+                autoComplete="off"
+                aria-labelledby="directory-search-label"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
