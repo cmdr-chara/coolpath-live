@@ -453,13 +453,13 @@ export class CoolPathRepository {
   }
 
   getLatestRun(sourceId: string): StoredIngestRun | null {
-    const row = this.db
-      .select()
-      .from(ingestRuns)
-      .where(eq(ingestRuns.sourceId, sourceId))
-      .orderBy(desc(ingestRuns.startedAt))
-      .get();
-    return row ? this.mapRun(row) : null;
+    const runId = this.sqlite
+      .prepare(
+        "SELECT id FROM ingest_runs WHERE source_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1"
+      )
+      .pluck()
+      .get(sourceId) as string | undefined;
+    return runId ? this.getRun(runId) : null;
   }
 
   getRun(runId: string): StoredIngestRun | null {
