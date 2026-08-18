@@ -4,7 +4,7 @@ Date: 2026-08-18
 
 This review records the visual acceptance work for `frontend/reference-led-redesign`. The current direction is the approved **Civic Clarity / Concept 1** treatment: a calm civic product with real product hierarchy, restrained motion, and local decorative artwork rather than a generic dashboard aesthetic.
 
-The application was rendered with Chromium in GitHub Actions against the deterministic mock API. The successful image-led QA run captured public desktop/mobile plus technical healthy/drift states. Later refinements only add the circular facility marker and tighten presenter alignment; the normal CI/Playwright suite remains the merge gate for those code changes.
+The application was rendered with Chromium in GitHub Actions against the deterministic mock API. The final image-led QA run at application-content head `1cda85502b658c36e628c331b73a34becac969c2` captured public desktop/mobile plus technical healthy/drift states, including the circular facility markers and final presenter alignment. The temporary screenshot workflow was then removed; normal CI/Playwright remains the merge gate.
 
 ## Art direction
 
@@ -35,7 +35,7 @@ The images are decorative and do not assert weather, location availability, oper
 
 - The same hero artwork becomes a subdued in-container background instead of a tall standalone image, preserving task density.
 - Task title, status/source metadata, and search remain ahead of the results.
-- The successful image-led render still reached the first real location in the initial 390×844 viewport.
+- The final image-led render reaches the first real location in the initial 390×844 viewport.
 - Input text remains at least 16px and Evidence controls retain touch-friendly sizing.
 - Dense results return to conventional left alignment.
 
@@ -81,7 +81,7 @@ No fake recent-run chart or unsupported temperature value is rendered: the curre
 
 ### Drift / quarantine — pass
 
-The successful image-led drift render confirms:
+The final image-led drift render confirms:
 
 - warning source status becomes prominent;
 - the deterministic degraded candidate exposes its actual mock metrics/reason counts;
@@ -111,7 +111,7 @@ Desktop:
 - icon/text groups are optically centered inside each step;
 - step numbers remain small positional metadata.
 
-Mobile returns to left-aligned controls for scanning and touch use.
+The final desktop render verifies this alignment. Mobile returns to left-aligned controls for scanning and touch use.
 
 ## Motion and micro-interactions
 
@@ -147,10 +147,10 @@ Covered by the existing/new Playwright flows and implementation review:
 3. Technical view has visual variety without inventing unsupported data: **pass**.
 4. Healthy view contains no `No unresolved incident` placeholder: **pass**.
 5. Incident UI exists only for an actual incident state: **pass**.
-6. Public mobile still reaches a real location in the initial viewport in the successful Concept 1 render: **pass**.
+6. Public mobile reaches a real location in the initial viewport in the final Concept 1 render: **pass**.
 7. Technical mobile prioritizes source state/metrics/pipeline before controls: **pass**.
 8. Published snapshot remains distinct from a failed candidate: **pass**.
-9. Presenter controls are secondary and optically centered on desktop: **pass by implementation constraint; final micro-refinement is CI-gated**.
+9. Presenter controls are secondary and optically centered on desktop: **pass, verified by final render**.
 10. Product provenance and safety boundaries remain unchanged: **pass**.
 
 ## Remaining non-visual constraints
