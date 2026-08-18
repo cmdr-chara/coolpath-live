@@ -1,5 +1,7 @@
 import { ArrowSquareOut, Check, GitDiff, ShieldWarning } from "@phosphor-icons/react";
 import { useRef, type ReactNode } from "react";
+import bridgeRiver from "../assets/bridge-river.svg";
+import civicBuilding from "../assets/civic-building.svg";
 import { useEntranceMotion } from "../hooks/useEntranceMotion";
 import type { CityResponse, Incident } from "../types";
 import { formatInstant, formatPercent, formatState, sourceHost } from "./format";
@@ -20,9 +22,8 @@ export function TechnicalView({
   const status = statusContent[city.source.status];
   const quarantined = Boolean(incident);
   const reportLabel = snapshot ? status.reportLabel : "No verified report";
-  const incidentTitle = !incident
-    ? "No unresolved incident"
-    : city.source.status === "REVIEW_PENDING"
+  const incidentTitle =
+    city.source.status === "REVIEW_PENDING"
       ? "Repair review pending"
       : city.source.status === "HEALING"
         ? "Repair in progress"
@@ -52,7 +53,7 @@ export function TechnicalView({
     },
     {
       key: "published",
-      label: "Published snapshot",
+      label: "Published",
       value: snapshot ? `${snapshot.sites.length} trusted records` : "No snapshot",
       detail: reportLabel,
       tone: snapshot ? "passed" : "neutral"
@@ -64,22 +65,23 @@ export function TechnicalView({
   return (
     <main id="main" ref={viewRef} className="technical-view">
       <div className="page-width technical-layout">
-        <section className="integrity-header" aria-labelledby="technical-title" data-motion-section>
-          <div className="integrity-header__title">
+        <section className="integrity-hero" aria-labelledby="technical-title" data-motion-section>
+          <div className="integrity-hero__copy">
             <p className="kicker">Source integrity / {city.city.displayName}</p>
-            <h1 id="technical-title">Source integrity</h1>
-            <p>{city.source.agencyName}</p>
-          </div>
-
-          <div className={`integrity-state integrity-state--${status.tone}`} aria-live="polite">
-            <span className="status-dot" aria-hidden="true" />
-            <div>
-              <strong>{status.title}</strong>
-              <span>{reportLabel}</span>
+            <div className="integrity-hero__title-row">
+              <h1 id="technical-title">Source integrity</h1>
+              <span className={`integrity-pill integrity-pill--${status.tone}`}>
+                <span className="status-dot" aria-hidden="true" />
+                {status.title}
+              </span>
             </div>
+            <p>
+              The public directory is backed by a published snapshot that passed the validation
+              boundary.
+            </p>
           </div>
 
-          <dl className="integrity-identity">
+          <dl className="integrity-hero__identity">
             <div>
               <dt>Collector</dt>
               <dd>
@@ -108,20 +110,24 @@ export function TechnicalView({
           data-motion-section
         >
           <div data-motion-item>
-            <span>Rows returned</span>
-            <strong>{run?.recordCount ?? 0}</strong>
-          </div>
-          <div data-motion-item>
             <span>Published</span>
             <strong>{snapshot?.sites.length ?? 0}</strong>
+            <small>trusted locations</small>
+          </div>
+          <div data-motion-item>
+            <span>Rows returned</span>
+            <strong>{run?.recordCount ?? 0}</strong>
+            <small>latest collector run</small>
           </div>
           <div data-motion-item>
             <span>Required fields</span>
             <strong>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</strong>
+            <small>validation coverage</small>
           </div>
           <div data-motion-item>
             <span>Reason codes</span>
             <strong>{run?.reasonCodes.length ?? 0}</strong>
+            <small>{quarantined ? "candidate held" : "latest run"}</small>
           </div>
         </section>
 
@@ -129,7 +135,7 @@ export function TechnicalView({
           <header className="pipeline-panel__header">
             <div>
               <p className="section-label">Publication boundary</p>
-              <h2 id="pipeline-title">One route from source to public data</h2>
+              <h2 id="pipeline-title">Source → Scraper Studio → Validation → Published</h2>
             </div>
             <p>
               Public reads follow <code>publishedSnapshotId</code>, never the newest candidate.
@@ -173,99 +179,41 @@ export function TechnicalView({
           </aside>
         </section>
 
-        {controls ? (
-          <div className="technical-controls-motion" data-motion-section>
-            {controls}
-          </div>
-        ) : null}
-
-        <div
-          className={`operations-grid ${
-            incident ? "operations-grid--incident" : "operations-grid--healthy"
-          }`}
-          data-motion-section
-        >
-          <section
-            className={`incident-register ${
-              incident ? "incident-register--active" : "incident-register--clear"
-            }`}
-            aria-labelledby="incident-title"
-          >
-            <header className="ledger-title">
-              {incident ? (
-                <ShieldWarning size={20} aria-hidden="true" />
-              ) : (
-                <Check size={20} aria-hidden="true" />
-              )}
+        {incident ? (
+          <section className="incident-feature" aria-labelledby="incident-title" data-motion-section>
+            <div className="incident-feature__title">
+              <ShieldWarning size={22} aria-hidden="true" />
               <div>
                 <span>Current incident</span>
                 <h2 id="incident-title">{incidentTitle}</h2>
+                <p>The failed candidate remains outside the public publication path.</p>
               </div>
-            </header>
-            {incident ? (
-              <>
-                <dl className="incident-meta">
-                  <div>
-                    <dt>Opened</dt>
-                    <dd>{formatInstant(incident.openedAt, city.city.timezone)}</dd>
-                  </div>
-                  <div>
-                    <dt>Severity</dt>
-                    <dd>{incident.severity}</dd>
-                  </div>
-                </dl>
-                <ul className="reason-codes" aria-label="Incident reasons">
-                  {incident.reasonCodes.map((reason) => (
-                    <li key={reason}>
-                      <code>{reason}</code>
-                    </li>
-                  ))}
-                </ul>
-                {incident.healPrompt ? (
-                  <details className="repair-prompt">
-                    <summary>Read the field-specific repair prompt</summary>
-                    <p>{incident.healPrompt}</p>
-                  </details>
-                ) : null}
-              </>
-            ) : (
-              <p className="ledger-empty">
-                The current public snapshot is backed by a passing collector run.
-              </p>
-            )}
-          </section>
-
-          <section className="run-register" aria-labelledby="run-title">
-            <header>
-              <span>Latest collector run</span>
-              <h2 id="run-title">Verification facts</h2>
-            </header>
-            <dl>
+            </div>
+            <dl className="incident-feature__meta">
               <div>
-                <dt>Outcome</dt>
-                <dd>{run ? formatState(run.outcome) : "Not available"}</dd>
+                <dt>Opened</dt>
+                <dd>{formatInstant(incident.openedAt, city.city.timezone)}</dd>
               </div>
               <div>
-                <dt>Record count</dt>
-                <dd>{run?.recordCount ?? 0}</dd>
-              </div>
-              <div>
-                <dt>Optional claim coverage</dt>
-                <dd>{formatPercent(run?.validationSummary.optionalClaimCoverage)}</dd>
-              </div>
-              <div>
-                <dt>Completed</dt>
-                <dd>{formatInstant(run?.completedAt, city.city.timezone)}</dd>
-              </div>
-              <div>
-                <dt>Snapshot ID</dt>
-                <dd>
-                  <code>{snapshot?.id ?? "Not available"}</code>
-                </dd>
+                <dt>Severity</dt>
+                <dd>{incident.severity}</dd>
               </div>
             </dl>
+            <ul className="reason-codes" aria-label="Incident reasons">
+              {incident.reasonCodes.map((reason) => (
+                <li key={reason}>
+                  <code>{reason}</code>
+                </li>
+              ))}
+            </ul>
+            {incident.healPrompt ? (
+              <details className="repair-prompt">
+                <summary>Read the field-specific repair prompt</summary>
+                <p>{incident.healPrompt}</p>
+              </details>
+            ) : null}
           </section>
-        </div>
+        ) : null}
 
         {incident?.healDiff.length ? (
           <section className="repair-review" aria-labelledby="repair-title" data-motion-section>
@@ -303,29 +251,97 @@ export function TechnicalView({
           </section>
         ) : null}
 
-        <section className="timeline-register" aria-labelledby="timeline-title" data-motion-section>
-          <header>
-            <span>Activity</span>
-            <h2 id="timeline-title">Publication history</h2>
-          </header>
-          {city.timeline.length === 0 ? (
-            <p className="ledger-empty">No source events have been recorded yet.</p>
-          ) : (
-            <ol>
-              {city.timeline.map((event) => (
-                <li key={event.id} className={`timeline-event timeline-event--${event.tone}`}>
-                  <time dateTime={event.occurredAt}>
-                    {formatInstant(event.occurredAt, city.city.timezone)}
-                  </time>
-                  <div>
-                    <strong>{event.title}</strong>
-                    <p>{event.detail}</p>
-                  </div>
+        <section className="technical-card-grid" aria-label="Verification evidence" data-motion-section>
+          <article className="technical-card verification-card" data-motion-item>
+            <div className="technical-card__content">
+              <p className="section-label">Verification facts</p>
+              <dl className="fact-list">
+                <div>
+                  <dt>Outcome</dt>
+                  <dd>{run ? formatState(run.outcome) : "Not available"}</dd>
+                </div>
+                <div>
+                  <dt>Required fields</dt>
+                  <dd>{formatPercent(run?.validationSummary.requiredFieldCompleteness)}</dd>
+                </div>
+                <div>
+                  <dt>Optional coverage</dt>
+                  <dd>{formatPercent(run?.validationSummary.optionalClaimCoverage)}</dd>
+                </div>
+                <div>
+                  <dt>Reason codes</dt>
+                  <dd>{run?.reasonCodes.length ?? 0}</dd>
+                </div>
+              </dl>
+            </div>
+            <img src={civicBuilding} alt="" aria-hidden="true" />
+          </article>
+
+          <article className="technical-card activity-card" data-motion-item>
+            <p className="section-label">Latest activity</p>
+            {city.timeline.length === 0 ? (
+              <p className="card-empty">No source events have been recorded yet.</p>
+            ) : (
+              <ol>
+                {city.timeline.slice(0, 3).map((event) => (
+                  <li key={event.id} className={`activity-item activity-item--${event.tone}`}>
+                    <time dateTime={event.occurredAt}>
+                      {formatInstant(event.occurredAt, city.city.timezone)}
+                    </time>
+                    <div>
+                      <strong>{event.title}</strong>
+                      <span>{event.detail}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </article>
+
+          <article className="technical-card snapshot-card" data-motion-item>
+            <p className="section-label">Published snapshot</p>
+            <div className="snapshot-card__hero">
+              <strong>{snapshot?.sites.length ?? 0}</strong>
+              <span>trusted records available to public reads</span>
+            </div>
+            <dl className="fact-list fact-list--compact">
+              <div>
+                <dt>Observed</dt>
+                <dd>{formatInstant(snapshot?.observedAt, city.city.timezone)}</dd>
+              </div>
+              <div>
+                <dt>Snapshot ID</dt>
+                <dd>
+                  <code>{snapshot?.id ?? "Not available"}</code>
+                </dd>
+              </div>
+            </dl>
+          </article>
+
+          <article className="technical-card trust-card" data-motion-item>
+            <img src={bridgeRiver} alt="" aria-hidden="true" />
+            <div className="trust-card__copy">
+              <p className="section-label">Data you can trust</p>
+              <ul>
+                <li>
+                  <Check size={15} aria-hidden="true" /> Public source provenance
                 </li>
-              ))}
-            </ol>
-          )}
+                <li>
+                  <Check size={15} aria-hidden="true" /> Validation before publication
+                </li>
+                <li>
+                  <Check size={15} aria-hidden="true" /> Human review before repaired selectors publish
+                </li>
+              </ul>
+            </div>
+          </article>
         </section>
+
+        {controls ? (
+          <div className="technical-controls-motion" data-motion-section>
+            {controls}
+          </div>
+        ) : null}
       </div>
     </main>
   );
