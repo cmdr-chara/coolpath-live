@@ -14,8 +14,7 @@
 
 body {
   background:
-    radial-gradient(circle at 18% 8%, rgb(208 238 226 / 0.34), transparent 28rem),
-    var(--bg);
+    radial-gradient(circle at 18% 8%, rgb(208 238 226 / 0.34), transparent 28rem), var(--bg);
 }
 
 .app-header {
@@ -86,7 +85,13 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(90deg, #ffffff 0%, #ffffff 44%, rgb(255 255 255 / 0.86) 58%, transparent 82%);
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    #ffffff 44%,
+    rgb(255 255 255 / 0.86) 58%,
+    transparent 82%
+  );
   content: "";
   pointer-events: none;
 }
@@ -708,7 +713,13 @@ body {
 
 @media (max-width: 1050px) {
   .directory-hero::after {
-    background: linear-gradient(90deg, #ffffff 0%, #ffffff 54%, rgb(255 255 255 / 0.9) 68%, transparent 92%);
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      #ffffff 54%,
+      rgb(255 255 255 / 0.9) 68%,
+      transparent 92%
+    );
   }
 
   .directory-hero__art {
@@ -757,7 +768,12 @@ body {
   }
 
   .directory-hero::after {
-    background: linear-gradient(90deg, #ffffff 0%, rgb(255 255 255 / 0.98) 64%, rgb(255 255 255 / 0.74) 100%);
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      rgb(255 255 255 / 0.98) 64%,
+      rgb(255 255 255 / 0.74) 100%
+    );
   }
 
   .directory-hero__art {

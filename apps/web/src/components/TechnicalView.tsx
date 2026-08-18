@@ -180,7 +180,11 @@ export function TechnicalView({
         </section>
 
         {incident ? (
-          <section className="incident-feature" aria-labelledby="incident-title" data-motion-section>
+          <section
+            className="incident-feature"
+            aria-labelledby="incident-title"
+            data-motion-section
+          >
             <div className="incident-feature__title">
               <ShieldWarning size={22} aria-hidden="true" />
               <div>
@@ -251,7 +255,11 @@ export function TechnicalView({
           </section>
         ) : null}
 
-        <section className="technical-card-grid" aria-label="Verification evidence" data-motion-section>
+        <section
+          className="technical-card-grid"
+          aria-label="Verification evidence"
+          data-motion-section
+        >
           <article className="technical-card verification-card" data-motion-item>
             <div className="technical-card__content">
               <p className="section-label">Verification facts</p>
@@ -330,7 +338,8 @@ export function TechnicalView({
                   <Check size={15} aria-hidden="true" /> Validation before publication
                 </li>
                 <li>
-                  <Check size={15} aria-hidden="true" /> Human review before repaired selectors publish
+                  <Check size={15} aria-hidden="true" /> Human review before repaired selectors
+                  publish
                 </li>
               </ul>
             </div>
