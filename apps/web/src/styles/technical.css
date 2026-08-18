@@ -382,6 +382,8 @@
 }
 
 .repair-review th,
+
+
 .repair-review td{
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
@@ -396,6 +398,8 @@
 }
 
 .repair-review tbody th,
+
+
 .repair-review td{
   font-size: 11px;
 }

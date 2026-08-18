@@ -3,12 +3,6 @@
   width: min(1180px, calc(100% - (var(--page-gutter) * 2)));
 }
 
-.directory-intro{
-  max-width: 920px;
-  margin-inline: auto;
-  text-align: center;
-}
-
 .directory-intro__lede{
   margin-inline: auto;
 }
@@ -64,7 +58,11 @@
 }
 
 .text-action,
+
+
 .primary-action,
+
+
 .primary-nav a{
   transition:
     color 160ms ease,
@@ -75,21 +73,29 @@
 }
 
 .text-action:hover,
+
+
 .primary-action:hover{
   transform: translateY(-1px);
 }
 
 .text-action:active,
+
+
 .primary-action:active{
   transform: translateY(0) scale(0.985);
 }
 
 .text-action svg,
+
+
 .directory-meta a svg{
   transition: transform 160ms ease;
 }
 
 .text-action:hover svg,
+
+
 .directory-meta a:hover svg{
   transform: translate(2px, -2px);
 }
@@ -178,8 +184,14 @@
 }
 
 .integrity-metrics > div,
+
+
 .pipeline-step,
+
+
 .quarantine-branch,
+
+
 .presenter-steps button{
   transition:
     background-color 160ms ease,
@@ -244,9 +256,9 @@
 }
 
 @media (max-width: 720px) {
-  .directory-intro,
-.directory-search,
-.boundary-note{
+  .directory-search,
+
+  .boundary-note{
     text-align: left;
   }
 
@@ -259,13 +271,17 @@
   }
 
   .presenter-console > header,
-.presenter-console > header > div{
+
+
+  .presenter-console > header > div{
     justify-items: start;
     text-align: left;
   }
 
   .presenter-console > header > p,
-.presenter-feedback{
+
+
+  .presenter-feedback{
     text-align: left;
   }
 
@@ -276,9 +292,15 @@
   }
 
   .site-record:hover,
-.text-action:hover,
-.primary-action:hover,
-.presenter-steps button:hover:not(:disabled){
+
+
+  .text-action:hover,
+
+
+  .primary-action:hover,
+
+
+  .presenter-steps button:hover:not(:disabled){
     box-shadow: none;
     transform: none;
   }
@@ -290,17 +312,39 @@
   }
 
   .site-record,
-.text-action,
-.primary-action,
-.primary-nav a,
-.directory-search__field,
-.integrity-metrics > div,
-.pipeline-step,
-.pipeline-step__marker,
-.quarantine-branch,
-.presenter-steps button,
-.text-action svg,
-.directory-meta a svg{
+
+
+  .text-action,
+
+
+  .primary-action,
+
+
+  .primary-nav a,
+
+
+  .directory-search__field,
+
+
+  .integrity-metrics > div,
+
+
+  .pipeline-step,
+
+
+  .pipeline-step__marker,
+
+
+  .quarantine-branch,
+
+
+  .presenter-steps button,
+
+
+  .text-action svg,
+
+
+  .directory-meta a svg{
     transition: none;
   }
 }

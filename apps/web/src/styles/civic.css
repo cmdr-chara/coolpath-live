@@ -45,6 +45,8 @@ body{
 }
 
 .primary-nav a:hover,
+
+
 .primary-nav a[aria-current="page"]{
   color: var(--brand);
   background: transparent;
@@ -63,6 +65,8 @@ body{
 }
 
 .directory-view,
+
+
 .technical-layout{
   width: min(1240px, calc(100% - (var(--page-gutter) * 2)));
 }
@@ -226,6 +230,8 @@ body{
 }
 
 .site-record:hover,
+
+
 .site-record:focus-within{
   border-color: #bfd4cb;
   background: #ffffff;
@@ -806,7 +812,9 @@ body{
   }
 
   .directory-meta__report,
-.directory-meta__separator{
+
+
+  .directory-meta__separator{
     display: none;
   }
 
@@ -933,8 +941,12 @@ body{
   }
 
   .presenter-console > header,
-.presenter-console > header > p,
-.presenter-feedback{
+
+
+  .presenter-console > header > p,
+
+
+  .presenter-feedback{
     text-align: left;
   }
 
@@ -1071,8 +1083,12 @@ body{
   }
 
   .presenter-console > header,
-.presenter-console > header > p,
-.presenter-feedback{
+
+
+  .presenter-console > header > p,
+
+
+  .presenter-feedback{
     align-items: flex-start;
     text-align: left;
   }
@@ -1105,6 +1121,8 @@ body{
 }
 
 .site-record:hover,
+
+
 .site-record:focus-within{
   border-color: transparent;
   background: linear-gradient(90deg, rgb(231 245 238 / 0.5), transparent 72%);
@@ -1121,6 +1139,8 @@ body{
 }
 
 /* Technical overview: metrics become an information rail,
+
+
 not another card. */
 .integrity-metrics{
   overflow: visible;
@@ -1146,6 +1166,8 @@ not another card. */
 }
 
 /* Evidence reads as one workspace split into sections,
+
+
 not four independent cards. */
 .technical-card-grid{
   gap: 0;
@@ -1176,6 +1198,8 @@ not four independent cards. */
 }
 
 .verification-card > img,
+
+
 .trust-card > img{
   border-radius: 12px;
 }
@@ -1245,7 +1269,9 @@ not four independent cards. */
   }
 
   .site-record:hover,
-.site-record:focus-within{
+
+
+  .site-record:focus-within{
     background: transparent;
   }
 
@@ -1281,7 +1307,9 @@ not four independent cards. */
   }
 
   .verification-card > img,
-.trust-card > img{
+
+
+  .trust-card > img{
     border-radius: 10px;
   }
 
