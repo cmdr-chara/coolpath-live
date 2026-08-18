@@ -170,7 +170,7 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
 
   decideHeal(input: HealDecision): Promise<CollectorStatus> {
     return this.withOperationTimeout(async (signal) => {
-      await this.call(
+      const response = await this.call(
         `/dca/collectors/${encodeURIComponent(input.collectorId)}/resume_automation_job`,
         {
           method: "POST",
@@ -179,6 +179,8 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
         },
         signal
       );
+      await response.text();
+      throwIfAborted(signal);
       return {
         collectorId: input.collectorId,
         status: input.approve ? "ready" : "failed",

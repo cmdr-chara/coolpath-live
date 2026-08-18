@@ -227,6 +227,48 @@ describe("Bright Data Scraper Studio client", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("times out while the healing decision response body is stalled", async () => {
+    vi.useFakeTimers();
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollTimeoutMs: 20,
+      fetchImplementation: sequencedFetch([stalledResponse()], [])
+    });
+    const operation = client.decideHeal({
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling",
+      jobId: "heal-1",
+      approve: true
+    });
+
+    await vi.advanceTimersByTimeAsync(20);
+    await expect(operation).rejects.toMatchObject({ name: "AbortError" });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("aborts an active provider operation during shutdown", async () => {
+    vi.useFakeTimers();
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollTimeoutMs: 1_000,
+      fetchImplementation: sequencedFetch([stalledResponse()], [])
+    });
+    const operation = client.runCollector({
+      sourceId: "source-1",
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling"
+    });
+    await vi.advanceTimersByTimeAsync(0);
+
+    client.close();
+
+    await expect(operation).rejects.toMatchObject({
+      name: "AbortError",
+      message: "Bright Data operation stopped during shutdown"
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("clears the operation timer after a successful collection", async () => {
     vi.useFakeTimers();
     const client = new BrightDataScraperStudioClient({
