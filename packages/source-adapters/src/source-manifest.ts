@@ -1,3 +1,5 @@
+import { PA211_SOURCE } from "./pa211-source.js";
+
 export interface SourceManifestEntry {
   city: string;
   authority: string;
@@ -14,13 +16,12 @@ export interface SourceManifestEntry {
 
 export const sourceManifest: SourceManifestEntry[] = [
   {
-    city: "Philadelphia",
-    authority: "Pennsylvania 211",
-    canonicalUrl:
-      "https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10",
-    allowedOrigins: ["https://search.pa211.org"],
+    city: PA211_SOURCE.city.displayName,
+    authority: PA211_SOURCE.agencyName,
+    canonicalUrl: PA211_SOURCE.canonicalUrl,
+    allowedOrigins: [...PA211_SOURCE.allowedOrigins],
     expectedUpdateCadence: "Continuously maintained public service directory",
-    freshnessTtlMinutes: 720,
+    freshnessTtlMinutes: PA211_SOURCE.freshnessTtlMinutes,
     termsAndRobotsNotes:
       "The public HTML directory requires no login. Use only the HTML search and detail pages, retain attribution and collect conservatively because no open-data licence is stated.",
     dataFieldsAvailable: [
@@ -34,7 +35,7 @@ export const sourceManifest: SourceManifestEntry[] = [
       "The bounded search returns up to 25 visible results from 32 matches.",
       "The current collector deliberately excludes hotlines, map-only results, phone numbers and pagination."
     ],
-    sourcePolicyVersion: "2026-08-17-pa211",
+    sourcePolicyVersion: PA211_SOURCE.policyVersion,
     implementationStatus: "primary_configurable"
   },
   {
