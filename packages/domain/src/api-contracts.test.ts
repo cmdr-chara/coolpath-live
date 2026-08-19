@@ -24,7 +24,12 @@ describe("shared API contracts", () => {
           ...city,
           sourceStatus: "HEALTHY",
           lastVerified: generatedAt,
-          lastVerifiedLocal: "Aug 19, 2026, 8:00 AM",
+          lastVerifiedLocal: {
+            instant: generatedAt,
+            timeZone: "America/New_York",
+            localIso: "2026-08-19T08:00:00-04:00",
+            utcOffset: "-04:00"
+          },
           siteCount: 12,
           mode: "real"
         }
