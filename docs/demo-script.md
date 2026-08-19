@@ -1,87 +1,80 @@
-# CoolPath Live demo script
+# CoolPath Live — demo script
 
-Target length: 3-4 minutes. Record the browser, terminal and Bright Data Scraper Studio collector identity when available.
+## 1. Real provider proof first
 
-## Opening: the public record
+Show the pinned Bright Data Scraper Studio collector `c_msxe8lsm2630ya30wu`, the final exact-commit live verification result and a small sanitized example of real structured output. Do not use the deterministic mock as a substitute for this evidence.
 
-Show the healthy **Public directory**.
+Explain the production path briefly:
 
-Say: “Public directory pages can return HTTP 200 while a scraper silently produces zero rows or malformed fields. CoolPath publishes only evidence that passed a typed contract.”
+`Scraper Studio → PA211 normalizer → runtime contract → quality gate → candidate snapshot → publication/quarantine → API → UI`
 
-Point out, in order:
+## 2. Public trust rule
 
-- Philadelphia or the clearly labelled deterministic Demo City fixture;
-- **Verified public source**;
-- Pennsylvania 211 or the synthetic fixture source name;
-- **Last verified** with the explicit IANA timezone;
-- the first cooling-location record inside the initial mobile viewport;
-- **Source-published hours** and **Not stated by the source**;
-- the evidence ledger and its source-page link.
+Open the public directory and state the product rule:
 
-State clearly: “CoolPath is not emergency or medical guidance. It does not claim that a location is safe, nearest, open now, currently available, medically appropriate or reachable by a safe route.”
+> The newest scrape is not automatically the public truth.
 
-## Healthy baseline
+Open one evidence record and show the source URL, observed timestamp and explicit source claims.
 
-Open **Technical view**. The URL should become `?view=technical`.
+## 3. Deterministic drift
 
-Use the publication board to show the complete path:
+Switch to the technical view. Point out the label **Presenter controls / deterministic fixture** and the copy **Mock source, real publication boundary** before using the controls.
 
-```text
-SOURCE → SCRAPER STUDIO → TYPED CONTRACT → PUBLISHED SNAPSHOT
-                                  ↓
-                              QUARANTINE
-```
+Run:
 
-Point out the source host, Collector ID, collector version, returned rows, required-field completeness, policy version, published record count and `publishedSnapshotId` boundary.
+1. **Healthy baseline**
+2. **Simulate drift**
 
-In mock mode, click **Healthy baseline**. Explain that Demo City is synthetic and deterministic; it is not represented as Pennsylvania 211 or municipal data.
+Show that the new candidate is quarantined while the previous trusted locations remain public.
 
-## Silent layout drift
+## 4. Human repair review
 
-Click **Simulate drift**.
-
-Show that:
-
-- the same collector returned a candidate;
-- the contract found missing identity and HTML contamination;
-- the red quarantine branch became active;
-- the published snapshot stayed protected;
-- the public view still shows the last trusted three-record report.
-
-Say: “The newest run is not automatically the public truth. Public reads follow `publishedSnapshotId`.”
-
-## Human-reviewed repair
-
-Click **Prepare repair**.
+Run **Prepare repair**.
 
 Show:
 
-- **Repair needs manual approval**;
 - the incident reason codes;
-- the bounded field-specific prompt;
-- the three before/after selector changes;
-- the unchanged Collector ID;
-- the disabled publication path until approval.
+- the field-specific repair prompt;
+- the selector diff;
+- the `REVIEW_PENDING` state.
 
-Emphasize that no selector is silently applied and that real Bright Data healing is asynchronous. The deterministic fixture is a labelled demonstration of the same approval boundary.
+Make clear that CoolPath has not applied or trusted the repair yet.
 
-## Approval and recovery
+## 5. Demonstrate both decisions
 
-Click **Approve and re-run**.
+The presenter exposes both human decisions.
 
-Show:
+### Rejection branch
 
-- the same collector runs again;
-- the complete contract passes;
-- quarantine returns to clear;
-- the recovered snapshot is transactionally promoted;
-- the incident is resolved by the new run;
-- the recovery timeline records every decision.
+Use **Reject repair** if you want to demonstrate the negative decision first. Show that:
 
-Return to **Public directory** and point out **Source recovered and re-verified** and the updated **Last verified** timestamp.
+- no repaired collector rerun occurs;
+- the incident remains visible;
+- the trusted snapshot remains public;
+- no selector change is represented as recovered.
 
-## Close
+Then prepare the repair again.
 
-“CoolPath combines Bright Data collection and self-healing with a strict evidence contract, so broken web extraction cannot silently become public cooling information.”
+### Approval branch
 
-Do not claim instant healing, full autonomy, guaranteed opening status, emergency suitability, source authority or production deployment unless those facts are demonstrated during the recording.
+Use **Approve and re-run**. Explain that the real Bright Data adapter does not treat the approval HTTP response as immediate readiness: it waits for the asynchronous Self-Healing job to finish. If the provider requests another review, CoolPath remains `REVIEW_PENDING` rather than rerunning.
+
+After provider readiness, CoolPath reruns the same collector identity and requires the complete normalizer/domain/publication contract before a recovered snapshot can become public.
+
+In the deterministic fixture, show `RECOVERED` and **Quarantine clear**.
+
+## 6. Clean-code proof
+
+Show the boundaries rather than file count:
+
+- `packages/source-adapters/src/pa211-source.ts` — one canonical production source policy;
+- `packages/source-adapters/src/bright-data-client.ts` — provider-specific trigger/poll/healing protocol;
+- `packages/domain/src/state-machine.ts` — legal lifecycle transitions;
+- `packages/domain/src/quality.ts` — fail-closed data-quality policy;
+- `packages/db/src/repository.ts` — transactional trusted-publication boundary;
+- `apps/api/src/ingestion-service.ts` — application orchestration;
+- `packages/domain/src/api-contracts.ts` + `apps/web/src/api.ts` — executable network contract;
+- `CODEX.md` + `docs/evidence/coding-agent-scraper-studio.md` — coding-agent operating/safety evidence;
+- `docs/runtime-constraints.md` — explicit single-writer topology rather than a fake distributed-lock claim.
+
+End on the final green CI status for the exact candidate being submitted. Do not quote an older test count if HEAD changed afterward.
