@@ -11,10 +11,10 @@ import type {
 } from "./types.js";
 
 const jobEnvelopeSchema = z.object({
-  id: z.string().optional(),
-  job_id: z.string().optional(),
+  id: z.string().min(1).optional(),
+  job_id: z.string().min(1).optional(),
   status: z.string().optional(),
-  response_id: z.string().optional(),
+  response_id: z.string().min(1).optional(),
   version: z.union([z.string(), z.number()]).optional()
 });
 
@@ -216,8 +216,10 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       const startedBody: unknown = await response.json();
       throwIfAborted(signal);
       const started = jobEnvelopeSchema.parse(startedBody);
-      const jobId =
-        started.job_id ?? started.id ?? started.response_id ?? `heal:${input.collectorId}`;
+      const jobId = started.job_id ?? started.id ?? started.response_id;
+      if (!jobId) {
+        throw new BrightDataProtocolError("Bright Data healing did not return a job identity");
+      }
 
       const preview = await this.pollHealReview(input.collectorId, signal);
       return {
