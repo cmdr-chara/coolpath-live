@@ -6,6 +6,7 @@ import {
 } from "./quality.js";
 import { coolingSiteSchema, snapshotStatusSchema } from "./schemas.js";
 import { sourceStateSchema } from "./state-machine.js";
+import { zonedTimestampSchema } from "./time.js";
 
 const isoDateTime = z.iso.datetime({ offset: true });
 
@@ -31,7 +32,7 @@ export const apiTimelineEventSchema = z.object({
 export const apiCitySummarySchema = apiCityIdentitySchema.extend({
   sourceStatus: sourceStateSchema,
   lastVerified: isoDateTime.nullable(),
-  lastVerifiedLocal: z.string().nullable(),
+  lastVerifiedLocal: zonedTimestampSchema.nullable(),
   siteCount: z.number().int().nonnegative(),
   mode: sourceModeSchema
 });
@@ -52,7 +53,7 @@ export const apiPublishedSnapshotSchema = z.object({
   sourceId: z.string().min(1),
   runId: z.string().min(1),
   observedAt: isoDateTime,
-  observedAtLocal: z.string().optional(),
+  observedAtLocal: zonedTimestampSchema.optional(),
   sourceReportedUpdatedAt: isoDateTime.nullable(),
   contentHash: z.string(),
   status: snapshotStatusSchema,
