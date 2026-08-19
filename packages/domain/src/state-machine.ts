@@ -56,6 +56,7 @@ export function transitionSourceState(state: SourceState, event: SourceEvent): S
     case "CHECK_STARTED":
       requireState(state, event.type, [
         "UNINITIALIZED",
+        "CHECKING",
         "HEALTHY",
         "DEGRADED",
         "STALE",
