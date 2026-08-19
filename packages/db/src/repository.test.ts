@@ -169,9 +169,9 @@ describe("snapshot publication", () => {
     );
     publish(repository, "newer-run", newer.id, "2026-08-17T12:07:00.000Z");
 
-    expect(() =>
-      publish(repository, "older-run", older.id, "2026-08-17T12:08:00.000Z")
-    ).toThrow(PublicationConflictError);
+    expect(() => publish(repository, "older-run", older.id, "2026-08-17T12:08:00.000Z")).toThrow(
+      PublicationConflictError
+    );
     expect(repository.getPublishedSnapshot("test-source")?.id).toBe(newer.id);
     expect(repository.getSnapshot(newer.id)?.status).toBe("published");
     expect(repository.getSnapshot(older.id)?.status).toBe("candidate");
@@ -322,9 +322,7 @@ describe("snapshot publication", () => {
 
     expect(second.id).toBe(first.id);
     expect(second.severity).toBe("critical");
-    expect(second.reasonCodes).toEqual(
-      expect.arrayContaining(["INVALID_SCHEMA", "ZERO_ROWS"])
-    );
+    expect(second.reasonCodes).toEqual(expect.arrayContaining(["INVALID_SCHEMA", "ZERO_ROWS"]));
   });
 
   it("preserves state on reseed and hides disabled sources", () => {
@@ -408,10 +406,9 @@ describe("persistence failure boundaries", () => {
     seed(repository);
 
     const raw = new Database(databasePath);
-    raw.prepare("UPDATE sources SET allowed_origins_json = ? WHERE id = ?").run(
-      "not-json",
-      "test-source"
-    );
+    raw
+      .prepare("UPDATE sources SET allowed_origins_json = ? WHERE id = ?")
+      .run("not-json", "test-source");
     raw.close();
 
     expect(() => repository.getSource("test-source")).toThrow();
