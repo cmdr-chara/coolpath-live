@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const sourceStates = [
   "UNINITIALIZED",
   "CHECKING",
@@ -10,7 +12,8 @@ export const sourceStates = [
   "RECOVERED"
 ] as const;
 
-export type SourceState = (typeof sourceStates)[number];
+export const sourceStateSchema = z.enum(sourceStates);
+export type SourceState = z.infer<typeof sourceStateSchema>;
 
 export type SourceEvent =
   | { type: "CHECK_STARTED" }
