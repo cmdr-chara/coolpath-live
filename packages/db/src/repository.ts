@@ -1,7 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { City, CoolingSite, Source, SourceState, ValidationSummary } from "@coolpath/domain";
+import {
+  coolingSiteSchema,
+  healDiffEntrySchema,
+  healStateSchema,
+  reasonCodeSchema,
+  snapshotStatusSchema,
+  sourceModeSchema,
+  sourceSchema,
+  sourceStateSchema,
+  storedValidationSummarySchema,
+  type City,
+  type CoolingSite,
+  type QualityDisposition,
+  type ReasonCode,
+  type Source,
+  type SourceState,
+  type ValidationSummary
+} from "@coolpath/domain";
 import Database from "better-sqlite3";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
@@ -33,13 +50,13 @@ export interface StoredIngestRun {
   startedAt: string;
   fetchedAt: string | null;
   completedAt: string | null;
-  outcome: string;
+  outcome: QualityDisposition;
   collectorId: string;
   collectorVersion: string;
   schemaVersion: string;
   recordCount: number;
   rawSha256: string;
-  reasonCodes: string[];
+  reasonCodes: ReasonCode[];
   validationSummary: StoredValidationSummary;
 }
 
@@ -48,7 +65,7 @@ export interface StoredIncident {
   sourceId: string;
   runId: string;
   severity: "warning" | "critical";
-  reasonCodes: string[];
+  reasonCodes: ReasonCode[];
   openedAt: string;
   healState: "not_requested" | "running" | "review_pending" | "approved" | "rejected" | "failed";
   healJobId: string | null;
@@ -68,9 +85,25 @@ export interface TimelineEvent {
   tone: "neutral" | "positive" | "warning" | "critical";
 }
 
+type PublishedSourceState = Extract<SourceState, "HEALTHY" | "RECOVERED">;
+
 export interface PublicationResult {
   incidentResolved: boolean;
-  sourceState: "HEALTHY" | "RECOVERED";
+  sourceState: PublishedSourceState;
+}
+
+interface PublicationCommitInput {
+  sourceId: string;
+  snapshotId: string;
+  promotedAt: string;
+  expectedRunId?: string;
+  sourceState?: PublishedSourceState;
+  recoveredByHealing?: boolean;
+  recordCount?: number;
+}
+
+function parseJson(value: string): unknown {
+  return JSON.parse(value) as unknown;
 }
 
 export class CoolPathRepository {
@@ -200,13 +233,18 @@ export class CoolPathRepository {
     this.db.update(sources).set({ currentState: state }).where(eq(sources.id, sourceId)).run();
   }
 
-  markSourceStale(input: { sourceId: string; occurredAt: string; observedAt: string }): boolean {
+  markSourceStale(input: {
+    sourceId: string;
+    occurredAt: string;
+    observedAt: string;
+    state: SourceState;
+  }): boolean {
     return this.db.transaction((transaction) => {
       const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
-      if (!source || source.currentState === "STALE") return false;
+      if (!source || source.currentState === input.state) return false;
       transaction
         .update(sources)
-        .set({ currentState: "STALE" })
+        .set({ currentState: input.state })
         .where(eq(sources.id, input.sourceId))
         .run();
       transaction
@@ -231,13 +269,13 @@ export class CoolPathRepository {
     startedAt: string;
     fetchedAt: string;
     completedAt: string;
-    outcome: string;
+    outcome: QualityDisposition;
     collectorId: string;
     collectorVersion: string;
     schemaVersion: string;
     recordCount: number;
     rawSha256: string;
-    reasonCodes: string[];
+    reasonCodes: ReasonCode[];
     validationSummary: ValidationSummary;
   }): void {
     this.db
@@ -301,34 +339,7 @@ export class CoolPathRepository {
   }
 
   promoteSnapshot(sourceId: string, snapshotId: string, promotedAt: string): void {
-    this.db.transaction((transaction) => {
-      const source = transaction.select().from(sources).where(eq(sources.id, sourceId)).get();
-      const candidate = transaction
-        .select()
-        .from(snapshots)
-        .where(and(eq(snapshots.id, snapshotId), eq(snapshots.sourceId, sourceId)))
-        .get();
-      if (!source || !candidate || candidate.status !== "candidate") {
-        throw new Error("Only a candidate snapshot belonging to the source can be promoted");
-      }
-      if (source.publishedSnapshotId) {
-        transaction
-          .update(snapshots)
-          .set({ status: "superseded" })
-          .where(eq(snapshots.id, source.publishedSnapshotId))
-          .run();
-      }
-      transaction
-        .update(snapshots)
-        .set({ status: "published", promotedAt })
-        .where(eq(snapshots.id, snapshotId))
-        .run();
-      transaction
-        .update(sources)
-        .set({ publishedSnapshotId: snapshotId })
-        .where(eq(sources.id, sourceId))
-        .run();
-    });
+    this.commitPublication({ sourceId, snapshotId, promotedAt });
   }
 
   publishSnapshot(input: {
@@ -336,93 +347,21 @@ export class CoolPathRepository {
     snapshotId: string;
     runId: string;
     promotedAt: string;
+    sourceState: PublishedSourceState;
     recoveredByHealing: boolean;
     recordCount: number;
   }): PublicationResult {
-    return this.db.transaction((transaction) => {
-      const candidate = transaction
-        .select()
-        .from(snapshots)
-        .where(and(eq(snapshots.id, input.snapshotId), eq(snapshots.sourceId, input.sourceId)))
-        .get();
-      if (!candidate || candidate.runId !== input.runId) {
-        throw new Error("Published snapshot must belong to the proving run");
-      }
-      const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
-      if (!source || candidate.status !== "candidate") {
-        throw new Error("Only a candidate snapshot belonging to the source can be promoted");
-      }
-      if (source.publishedSnapshotId) {
-        transaction
-          .update(snapshots)
-          .set({ status: "superseded" })
-          .where(eq(snapshots.id, source.publishedSnapshotId))
-          .run();
-      }
-      transaction
-        .update(snapshots)
-        .set({ status: "published", promotedAt: input.promotedAt })
-        .where(eq(snapshots.id, input.snapshotId))
-        .run();
-      transaction
-        .update(sources)
-        .set({ publishedSnapshotId: input.snapshotId })
-        .where(eq(sources.id, input.sourceId))
-        .run();
-
-      const currentIncident = transaction
-        .select()
-        .from(incidents)
-        .where(and(eq(incidents.sourceId, input.sourceId), isNull(incidents.resolvedAt)))
-        .orderBy(desc(incidents.openedAt))
-        .get();
-      const sourceState = input.recoveredByHealing ? "RECOVERED" : "HEALTHY";
-      transaction
-        .update(sources)
-        .set({ currentState: sourceState })
-        .where(eq(sources.id, input.sourceId))
-        .run();
-
-      if (currentIncident) {
-        transaction
-          .update(incidents)
-          .set({
-            ...(input.recoveredByHealing ? { healState: "approved" as const } : {}),
-            resolvedByRunId: input.runId,
-            resolvedAt: input.promotedAt
-          })
-          .where(eq(incidents.id, currentIncident.id))
-          .run();
-      }
-
-      const ordinaryRecovery = currentIncident !== undefined && !input.recoveredByHealing;
-      transaction
-        .insert(timelineEvents)
-        .values({
-          id: randomUUID(),
-          sourceId: input.sourceId,
-          occurredAt: input.promotedAt,
-          kind: input.recoveredByHealing
-            ? "recovered"
-            : ordinaryRecovery
-              ? "recovered_check"
-              : "published",
-          title: input.recoveredByHealing
-            ? "Recovered snapshot published"
-            : ordinaryRecovery
-              ? "Source recovered through ordinary check"
-              : "Trusted snapshot published",
-          detail: input.recoveredByHealing
-            ? `${input.recordCount} records passed after the approved healing rerun. The incident was resolved by run ${input.runId}.`
-            : ordinaryRecovery
-              ? `${input.recordCount} records passed a normal source check. The incident was resolved by run ${input.runId} without applying a healing preview.`
-              : `${input.recordCount} records passed the complete contract suite.`,
-          tone: "positive"
-        })
-        .run();
-
-      return { incidentResolved: currentIncident !== undefined, sourceState };
+    const result = this.commitPublication({
+      sourceId: input.sourceId,
+      snapshotId: input.snapshotId,
+      promotedAt: input.promotedAt,
+      expectedRunId: input.runId,
+      sourceState: input.sourceState,
+      recoveredByHealing: input.recoveredByHealing,
+      recordCount: input.recordCount
     });
+    if (!result) throw new Error("Publication workflow did not produce a source state");
+    return result;
   }
 
   getSnapshot(snapshotId: string): StoredSnapshot | null {
@@ -457,7 +396,7 @@ export class CoolPathRepository {
     sourceId: string;
     runId: string;
     severity: "warning" | "critical";
-    reasonCodes: string[];
+    reasonCodes: ReasonCode[];
     openedAt: string;
   }): StoredIncident {
     const existing = this.getCurrentIncident(input.sourceId);
@@ -569,20 +508,115 @@ export class CoolPathRepository {
       .all() as TimelineEvent[];
   }
 
+  private commitPublication(input: PublicationCommitInput): PublicationResult | null {
+    return this.db.transaction((transaction) => {
+      const candidate = transaction
+        .select()
+        .from(snapshots)
+        .where(and(eq(snapshots.id, input.snapshotId), eq(snapshots.sourceId, input.sourceId)))
+        .get();
+      if (!candidate || (input.expectedRunId && candidate.runId !== input.expectedRunId)) {
+        if (input.expectedRunId) {
+          throw new Error("Published snapshot must belong to the proving run");
+        }
+        throw new Error("Only a candidate snapshot belonging to the source can be promoted");
+      }
+
+      const source = transaction.select().from(sources).where(eq(sources.id, input.sourceId)).get();
+      if (!source || candidate.status !== "candidate") {
+        throw new Error("Only a candidate snapshot belonging to the source can be promoted");
+      }
+
+      if (source.publishedSnapshotId) {
+        transaction
+          .update(snapshots)
+          .set({ status: "superseded" })
+          .where(eq(snapshots.id, source.publishedSnapshotId))
+          .run();
+      }
+      transaction
+        .update(snapshots)
+        .set({ status: "published", promotedAt: input.promotedAt })
+        .where(eq(snapshots.id, input.snapshotId))
+        .run();
+      transaction
+        .update(sources)
+        .set({
+          publishedSnapshotId: input.snapshotId,
+          ...(input.sourceState ? { currentState: input.sourceState } : {})
+        })
+        .where(eq(sources.id, input.sourceId))
+        .run();
+
+      if (!input.sourceState) return null;
+      if (input.recordCount === undefined) {
+        throw new Error("Publication workflow requires the validated record count");
+      }
+
+      const currentIncident = transaction
+        .select()
+        .from(incidents)
+        .where(and(eq(incidents.sourceId, input.sourceId), isNull(incidents.resolvedAt)))
+        .orderBy(desc(incidents.openedAt))
+        .get();
+      const recoveredByHealing = input.recoveredByHealing ?? false;
+
+      if (currentIncident) {
+        transaction
+          .update(incidents)
+          .set({
+            ...(recoveredByHealing ? { healState: "approved" as const } : {}),
+            resolvedByRunId: input.expectedRunId,
+            resolvedAt: input.promotedAt
+          })
+          .where(eq(incidents.id, currentIncident.id))
+          .run();
+      }
+
+      const ordinaryRecovery = currentIncident !== undefined && !recoveredByHealing;
+      transaction
+        .insert(timelineEvents)
+        .values({
+          id: randomUUID(),
+          sourceId: input.sourceId,
+          occurredAt: input.promotedAt,
+          kind: recoveredByHealing
+            ? "recovered"
+            : ordinaryRecovery
+              ? "recovered_check"
+              : "published",
+          title: recoveredByHealing
+            ? "Recovered snapshot published"
+            : ordinaryRecovery
+              ? "Source recovered through ordinary check"
+              : "Trusted snapshot published",
+          detail: recoveredByHealing
+            ? `${input.recordCount} records passed after the approved healing rerun. The incident was resolved by run ${input.expectedRunId}.`
+            : ordinaryRecovery
+              ? `${input.recordCount} records passed a normal source check. The incident was resolved by run ${input.expectedRunId} without applying a healing preview.`
+              : `${input.recordCount} records passed the complete contract suite.`,
+          tone: "positive"
+        })
+        .run();
+
+      return { incidentResolved: currentIncident !== undefined, sourceState: input.sourceState };
+    });
+  }
+
   private mapSource(row: typeof sources.$inferSelect): StoredSource {
     return {
       id: row.id,
       cityId: row.cityId,
       agencyName: row.agencyName,
       canonicalUrl: row.canonicalUrl,
-      allowedOrigins: JSON.parse(row.allowedOriginsJson) as string[],
+      allowedOrigins: sourceSchema.shape.allowedOrigins.parse(parseJson(row.allowedOriginsJson)),
       collectorId: row.collectorId,
       freshnessTtlMinutes: row.freshnessTtlMinutes,
       policyVersion: row.policyVersion,
       enabled: row.enabled,
       publishedSnapshotId: row.publishedSnapshotId,
-      currentState: row.currentState as SourceState,
-      mode: row.mode as "real" | "mock"
+      currentState: sourceStateSchema.parse(row.currentState),
+      mode: sourceModeSchema.parse(row.mode)
     };
   }
 
@@ -593,14 +627,14 @@ export class CoolPathRepository {
       startedAt: row.startedAt,
       fetchedAt: row.fetchedAt,
       completedAt: row.completedAt,
-      outcome: row.outcome,
+      outcome: storedValidationSummarySchema.shape.disposition.parse(row.outcome),
       collectorId: row.collectorId,
       collectorVersion: row.collectorVersion,
       schemaVersion: row.schemaVersion,
       recordCount: row.recordCount,
       rawSha256: row.rawSha256,
-      reasonCodes: JSON.parse(row.reasonCodesJson) as string[],
-      validationSummary: JSON.parse(row.validationSummaryJson) as StoredValidationSummary
+      reasonCodes: reasonCodeSchema.array().parse(parseJson(row.reasonCodesJson)),
+      validationSummary: storedValidationSummarySchema.parse(parseJson(row.validationSummaryJson))
     };
   }
 
@@ -612,9 +646,9 @@ export class CoolPathRepository {
       observedAt: row.observedAt,
       sourceReportedUpdatedAt: row.sourceReportedUpdatedAt,
       contentHash: row.contentHash,
-      status: row.status as StoredSnapshot["status"],
+      status: snapshotStatusSchema.parse(row.status),
       promotedAt: row.promotedAt,
-      sites: JSON.parse(row.sitesJson) as CoolingSite[]
+      sites: coolingSiteSchema.array().parse(parseJson(row.sitesJson))
     };
   }
 
@@ -624,12 +658,12 @@ export class CoolPathRepository {
       sourceId: row.sourceId,
       runId: row.runId,
       severity: row.severity as StoredIncident["severity"],
-      reasonCodes: JSON.parse(row.reasonCodesJson) as string[],
+      reasonCodes: reasonCodeSchema.array().parse(parseJson(row.reasonCodesJson)),
       openedAt: row.openedAt,
-      healState: row.healState as StoredIncident["healState"],
+      healState: healStateSchema.parse(row.healState),
       healJobId: row.healJobId,
       healPrompt: row.healPrompt,
-      healDiff: JSON.parse(row.healDiffJson ?? "[]") as StoredIncident["healDiff"],
+      healDiff: healDiffEntrySchema.array().parse(parseJson(row.healDiffJson ?? "[]")),
       resolvedByRunId: row.resolvedByRunId,
       resolvedAt: row.resolvedAt
     };

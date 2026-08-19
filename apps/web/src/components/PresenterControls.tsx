@@ -1,7 +1,7 @@
-import { ArrowClockwise, Check, Heartbeat, Wrench } from "@phosphor-icons/react";
+import { ArrowClockwise, Check, Heartbeat, Wrench, X } from "@phosphor-icons/react";
 import type { Incident, SourceState } from "../types";
 
-export type DemoAction = "reset" | "drift" | "heal" | "approve";
+export type DemoAction = "reset" | "drift" | "heal" | "approve" | "reject";
 
 export function PresenterControls({
   state,
@@ -47,6 +47,14 @@ export function PresenterControls({
       label: "Approve and re-run",
       detail: "Validate before publication",
       icon: Check,
+      disabled: pending || state !== "REVIEW_PENDING"
+    },
+    {
+      id: "reject" as const,
+      number: "05",
+      label: "Reject repair",
+      detail: "Keep the collector unchanged",
+      icon: X,
       disabled: pending || state !== "REVIEW_PENDING"
     }
   ];

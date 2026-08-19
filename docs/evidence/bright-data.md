@@ -27,11 +27,13 @@ Before the large backend and clean-code refactors, the real Pennsylvania 211 col
 
 The 25→23 reduction came from the source-specific normalization policy, including exclusion of non-location/hotline results and duplicate identities. These numbers describe that verified run only; they are not a claim that Pennsylvania 211 always contains exactly 25 provider rows or 23 accepted locations.
 
-## Final post-refactor verification
+## Final post-hardening verification
 
-**Status: pending one deliberate live rerun against the final code candidate.**
+**Status: pending one deliberate live rerun against the exact final submission commit.**
 
-The existing CI suite deliberately uses deterministic scraper clients and does not contact Bright Data. Green CI therefore proves the application contracts and regression behavior, but it does not by itself prove that the external provider still integrates with the final refactored code.
+The current deterministic CI suite deliberately does not contact Bright Data. Green CI proves application contracts, provider sequencing logic, publication safety and regression behavior, but it does not by itself prove that the external collector still integrates with the final code.
+
+The hardened real adapter now waits for asynchronous Self-Healing completion before any approved repair may rerun, treats an additional provider review gate as `REVIEW_PENDING`, uses bounded retry only for safe provider reads and keeps source-row schema rejection fail closed. Those are code-level guarantees, not substitutes for the live provider gate.
 
 The final live gate should reuse the same Collector ID and perform exactly one paid collection through the authenticated real-mode operator endpoint. Use `DATABASE_URL=:memory:` and `AUTO_START_REAL_CHECK=false` so the check is isolated and does not create a second provider run during startup.
 
@@ -62,6 +64,14 @@ only after a real Scraper Studio run has produced the output. Include a few repr
 
 ## Healing evidence
 
-The application implements a fail-closed healing lifecycle: prepare a field-specific repair, require manual approval, rerun the same collector and validate the fresh result before publication.
+The application implements a fail-closed healing lifecycle:
 
-A genuine `bdata scraper heal` run using `c_msxe8lsm2630ya30wu` is useful judging evidence if there is a real extraction problem to repair. Do not intentionally damage a healthy production collector solely to manufacture a healing screenshot. If genuine healing is performed, record the same Collector ID, the bounded problem description, approval, rerun and final structured shape without exposing credentials.
+`detected extraction failure → field-specific repair request → provider repair preview → explicit human approve/reject → provider completion → same-collector rerun → full validation → recovery publication`
+
+A rejected preview does not rerun the collector. An approved preview cannot rerun until the asynchronous provider job reaches a ready terminal state; if another review gate appears, the source remains `REVIEW_PENDING`.
+
+A genuine Self-Healing run using `c_msxe8lsm2630ya30wu` is useful judging evidence if there is a real extraction problem to repair. Do not intentionally damage a healthy production collector solely to manufacture a healing screenshot. If genuine healing is performed, record the same Collector ID, bounded problem description, selector diff, explicit decision, provider completion, rerun and final structured shape without exposing credentials.
+
+## Coding-agent evidence
+
+`CODEX.md` defines the coding-agent operating contract for the pinned collector. `docs/evidence/coding-agent-scraper-studio.md` records the agent's concrete repository-side inspection and hardening of the real Scraper Studio lifecycle while explicitly stating that no live provider invocation occurred during the hardening pass.

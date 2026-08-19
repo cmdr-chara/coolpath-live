@@ -28,13 +28,13 @@ The historical numbers above describe one verified real run only. They are not a
 - SQLite WAL persistence with Drizzle schemas, versioned SQL migrations and a transactional `publishedSnapshotId` promotion boundary.
 - Fastify API exposing only published snapshots, with semantic ETags, conditional requests, security headers, source allowlists and sanitized errors.
 - Deterministic TTL reconciliation that marks expired trusted data historical without launching a provider request or deleting the snapshot.
-- Per-source single-flight coordination that prevents overlapping checks and healing mutations while allowing independent sources to proceed.
+- Per-source single-flight coordination that prevents overlapping checks and healing mutations while allowing independent sources to proceed within the supported single-writer runtime topology.
 - Separate liveness and readiness signals, non-blocking real-mode startup and graceful process shutdown.
 - Real Bright Data Scraper Studio API client plus a deterministic mock client. Mock mode is always labelled.
-- Manual healing review flow: detect drift, quarantine output, protect the baseline, prepare a field-specific repair, display the selector diff, approve, rerun the same collector and validate before publication.
+- Manual healing review flow: detect drift, quarantine output, protect the baseline, prepare a field-specific repair, display the selector diff, explicitly approve or reject it, rerun the same collector after approval and validate before publication.
 - Responsive React civic-evidence interface with public and technical views, URL-backed navigation, source-state rendering, keyboard-visible focus and evidence drawers.
 - Unit, integration and Playwright coverage with no live network calls in CI.
-- A separate low-rate Pennsylvania 211 live smoke command for deliberate manual verification.
+- A separate low-rate Pennsylvania 211 live smoke command for deliberate manual verification using the same source-specific normalization semantics as production.
 
 ## Hackathon fit
 
@@ -62,13 +62,13 @@ allowlisted public HTML
 
 The newest candidate is never automatically the public truth. Public endpoints follow the source's `publishedSnapshotId` pointer, so malformed or suspicious fresh data cannot overwrite the last trusted snapshot.
 
-See [docs/architecture.md](docs/architecture.md) for states, trust boundaries and recovery sequencing.
+See [docs/architecture.md](docs/architecture.md) for states, trust boundaries and recovery sequencing. Deployment and crash-recovery limits are explicit in [docs/runtime-constraints.md](docs/runtime-constraints.md).
 
 ## Reliability model
 
-A healthy collection is parsed, normalized and validated before it can be promoted. Hard contract failures quarantine immediately. Soft anomalies also block automatic publication pending review. Provider failures such as 403, 429, timeout or DNS errors are treated as inconclusive rather than mislabeled as layout drift.
+A healthy collection is parsed, normalized and validated before it can be promoted. Hard contract failures quarantine immediately. Soft anomalies also block automatic publication pending review. Provider failures such as authentication/configuration errors, forbidden access, missing collectors, invalid provider input, rate limits, timeouts or DNS errors are recorded distinctly rather than mislabeled as layout drift.
 
-When a collection is quarantined, the previous published snapshot remains available. A repair is not trusted merely because extraction starts returning values again: the same canonical validation and publication gates run after approval and rerun.
+When a collection is quarantined, the previous published snapshot remains available. A repair is not trusted merely because extraction starts returning values again: approval waits for the asynchronous Bright Data healing job to finish, then the same canonical validation and publication gates run on a fresh collector rerun. Rejection applies no repair and preserves the incident/trusted-data semantics.
 
 The deterministic mock flow exists to make this lifecycle reproducible without spending Bright Data credits or pretending that a real website changed on command.
 
@@ -76,7 +76,7 @@ The deterministic mock flow exists to make this lifecycle reproducible without s
 
 Pennsylvania 211 is the active real source because Bright Data accepted its public Philadelphia directory for the hackathon account while the reviewed government-domain candidates required additional provider verification. The production adapter makes that exception explicit rather than bypassing Bright Data policy.
 
-The bounded PA211 collector reads public facility information only, excludes non-location/hotline results and duplicates, restricts evidence links to the `search.pa211.org` HTTPS origin and assigns observation time server-side.
+The bounded PA211 collector reads public facility information only, excludes non-location/hotline results and duplicates, restricts evidence links to the `search.pa211.org` HTTPS origin and assigns observation time server-side. Runtime seed configuration, source-manifest metadata and normalizer enforcement reuse one canonical PA211 source definition so those trust boundaries cannot silently drift apart.
 
 The full review of Pennsylvania 211, Arizona Faith Network, Fresno, Long Beach, St. Louis and the rejected Lakewood source is in [docs/source-policy.md](docs/source-policy.md).
 
@@ -104,12 +104,13 @@ curl --fail http://127.0.0.1:8787/readyz
 
 ## Reproduce drift safely
 
-The UI exposes four deterministic controls in mock mode:
+The UI exposes five deterministic controls in mock mode:
 
 1. **Healthy baseline** resets and publishes fixture layout v1.
 2. **Simulate drift** switches the same fixture URL to layout v2. Broken extraction is quarantined and the trusted baseline stays public.
 3. **Prepare repair** creates a field-specific healing prompt and selector diff.
 4. **Approve and re-run** applies the mock repair, reruns the same collector identity, validates the complete contract and publishes recovery.
+5. **Reject repair** explicitly rejects the preview, leaves the collector unchanged and keeps the trusted snapshot protected.
 
 For a terminal-only staged run:
 
@@ -162,9 +163,9 @@ A separate adapter-only smoke command also exists:
 pnpm smoke:live
 ```
 
-It runs the configured collector, normalizes the result and prints a bounded validation summary without publishing to the application database. When minimizing paid runs, choose either the end-to-end operator check or the smoke command rather than running both unnecessarily.
+It runs the configured collector, normalizes the result with the same source-specific metrics used by production and prints a bounded validation summary without publishing to the application database. When minimizing paid runs, choose either the end-to-end operator check or the smoke command rather than running both unnecessarily.
 
-The client follows Bright Data's documented Scraper Studio API and healing flow. See [CODEX.md](CODEX.md) for the credit-safe operating rules.
+The client follows Bright Data's documented Scraper Studio API and asynchronous healing flow. See [CODEX.md](CODEX.md) for the credit-safe operating rules.
 
 ## Public API
 
@@ -176,11 +177,11 @@ The client follows Bright Data's documented Scraper Studio API and healing flow.
 
 Public representation ETags cover meaningful city, source-state, trusted-snapshot, latest-run, active-incident and bounded-timeline data. The volatile response `generatedAt` value is excluded. Public reads use `Cache-Control: public, max-age=0, must-revalidate`; a matching `If-None-Match` receives `304`.
 
-Mock-only operator endpoints live under `/api/demo/*`; they accept no URLs and are not registered in real mode. Real-mode check, healing and approval endpoints live under `/api/operator/sources/:sourceId/*`, accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`.
+Mock-only operator endpoints live under `/api/demo/*`; they accept no URLs and are not registered in real mode. Real-mode check, healing and approval/rejection endpoints live under `/api/operator/sources/:sourceId/*`, accept only seeded allowlisted source IDs and require `Authorization: Bearer <OPERATOR_API_TOKEN>`.
 
 ## Quality gates
 
-Hard contract failures quarantine immediately: zero rows, invalid schema, missing name/address/evidence URL, non-HTTPS or off-origin evidence, duplicate identity, reversed dates, collector/schema identity change and HTML contamination.
+Hard contract failures quarantine immediately: zero rows, invalid schema, any source-row validation rejection, missing name/address/evidence URL, non-HTTPS or off-origin evidence, duplicate identity, reversed dates, collector/schema identity change and HTML contamination.
 
 Soft anomalies also block automatic publication pending review: major yield drop, widespread optional-field loss, suspicious content replacement, stable-identity replacement and unexpected record growth.
 

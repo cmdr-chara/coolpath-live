@@ -1,92 +1,106 @@
-# CoolPath Live — frontend clean-code preservation pass
+# CoolPath Live — jury-ready clean-code hardening
 
-Date: 2026-08-18
+Date: 2026-08-19
 
-This pass cleaned the approved **Civic Clarity / Concept 1** frontend without intentionally changing its product behavior, visual hierarchy, backend publication semantics, or mock/real boundary.
+This pass hardens CoolPath Live for **Best Clean Code** review without intentionally changing the product's trusted-publication rule or mock/real boundary. It concentrates domain decisions at explicit runtime boundaries and makes the Scraper Studio failure/recovery path fail closed.
 
-## Data flow
+No real Bright Data collection was triggered during this hardening pass.
 
-- `GET /api/cities/:slug` is now the single page read model for city/source/snapshot/latest-run/incident/timeline data.
-- The redundant initial `GET /api/incidents/:sourceId/current` request was removed from the web client because the city payload already includes the current incident.
-- Demo mutations still invalidate and reload the city read model from the backend rather than fabricating state in React.
-- Real mode and mock mode continue to use the same frontend/backend contract; deterministic presenter controls remain mock-only.
+## Architecture boundaries
 
-## Type boundary
+The domain package separates browser-safe contracts from server-side policy and hashing. Public API payloads are runtime-validated before leaving Fastify and again before the browser accepts them. The browser consumes the shared contract instead of maintaining a parallel hand-written DTO graph.
 
-The web package now depends on `@coolpath/domain` and reuses the existing domain types for:
+## Scraper Studio lifecycle hardening
 
-- `CoolingSite`;
-- `ExplicitClaim`;
-- `TemporalClaim`;
-- `SourceState`;
-- `SnapshotStatus`;
-- `QualityDisposition`;
-- `ReasonCode`.
+The real Bright Data adapter now models the provider workflow as asynchronous rather than treating an approval response as immediate collector readiness.
 
-Frontend API DTOs are named read models (`CityIdentity`, `SourceReadModel`, `PublishedSnapshot`, `LatestRun`, `RunValidationSummary`, and related types) instead of one large anonymous object graph. Stringly typed run/snapshot state fields were replaced with the existing domain unions where the backend contract supports them.
+The implemented sequence is:
 
-## Component responsibilities
+`trigger → poll structured dataset → normalize → validate → publish/quarantine`
 
-The former monolithic `TechnicalView.tsx` is now a composition root over three responsibility-based units:
+and for healing:
 
-- `TechnicalOverview` — source identity, publication metrics, pipeline, and quarantine branch;
-- `TechnicalIncident` — incident details and selector repair review;
-- `TechnicalEvidence` — verification facts, activity, published snapshot, and provenance/trust evidence.
+`incident → field-specific prompt → repair preview → human approve/reject → provider completion → same-collector rerun → full validation → recovery publication`
 
-`StatusBanner.tsx`, which was no longer referenced by the current UI, was removed.
+Important guarantees:
 
-## Stylesheet cleanup
+- mutating/paid POST calls are not blindly retried;
+- safe provider polling reads use bounded retry for transient HTTP failures;
+- approval waits for the provider healing job to become ready before rerun;
+- a second provider review gate remains `REVIEW_PENDING` instead of causing an automatic rerun;
+- rejection applies no repair and restores trusted-data degradation/staleness semantics;
+- authentication, forbidden access, missing collector, invalid provider input, rate-limit, timeout and DNS failures remain distinct evidence;
+- source-row schema rejection is a hard publication failure rather than silent partial publication;
+- the dataset evidence hash is derived from the actual returned dataset body.
 
-The iterative design work had accumulated cascade debt. The cleanup:
+## Canonical source policy
 
-- consolidated the final Concept/refinement/distill layers into the semantic `civic.css` stylesheet;
-- reduced the entrypoint from eight stylesheet imports to six: `base`, `technical`, `support`, `responsive`, `interaction`, and `civic`;
-- removed obsolete selectors from the pre-Civic directory/technical implementations, including the old status banner, integrity header/state/identity, operations/register/timeline groups, and obsolete directory-intro shell;
-- removed 22 unused legacy custom-property aliases from the earlier migration layer;
-- removed empty media/support blocks left after dead-selector deletion;
-- ran Prettier over the resulting CSS instead of leaving cleanup-generated formatting artifacts.
+PA211 production identity and trust policy are now defined once in `packages/source-adapters/src/pa211-source.ts` and reused by:
 
-The final stylesheet split is based on responsibility rather than chronological patches.
+- API seed configuration;
+- PA211 origin/source normalization;
+- source-manifest metadata;
+- the live smoke command.
 
-## Dependencies and motion
+That removes manual duplication of source ID, city identity, canonical URL, allowed origin, TTL and policy version across runtime boundaries.
 
-- Removed the unused Newsreader font dependency; Geist remains the only loaded UI font package.
-- `useEntranceMotion` now queries motion targets explicitly below its supplied React scope instead of relying on selector context implicitly.
-- GSAP behavior and `prefers-reduced-motion` support remain unchanged in intent.
+## Source-state ownership
 
-## Visual regression evidence
+`transitionSourceState()` rejects illegal event/state combinations for normal operations, healing, review and publication. `CHECKING` accepts an idempotent `CHECK_STARTED` only to permit a new single-writer operation to recover from a persisted interrupted check; same-process overlap is rejected by `SourceOperationCoordinator` before the domain transition is reached.
 
-After the cleanup, Chromium rendered the same deterministic mock states used by the accepted pre-cleanup distill pass:
+Freshness reconciliation does not overwrite `CHECKING`, `HEALING` or `REVIEW_PENDING`, and startup explicitly reconciles interrupted persisted operations. Interrupted checks/healing cannot promote a candidate or replace the trusted pointer.
 
-- Public desktop — 1440 px;
-- Public mobile — 390 × 844;
-- Technical healthy desktop — 1440 px;
-- Technical healthy mobile — 390 × 844;
-- Technical drift/quarantine desktop — 1440 px.
+## Runtime topology
 
-All five post-cleanup captures have the same dimensions as their pre-cleanup baselines. Side-by-side review found no structural layout shift, missing content, changed hierarchy, or container regression. The visible differences in the technical captures are expected dynamic mock values such as run timestamps and generated IDs, not presentation changes.
+The supported submission topology is explicit: one API writer process per SQLite database. The process-local source coordinator is not described as a distributed lock. See `docs/runtime-constraints.md`.
 
-The temporary visual-regression workflow uploaded the evidence artifact and removed itself from the branch.
+## Transactional publication
 
-## Final verification
+`CoolPathRepository` keeps the final trust switch atomic. Candidate validation happens before publication; publication then performs trusted-snapshot supersession, candidate promotion, trusted pointer movement, source-state publication, incident resolution and publication/recovery timeline evidence in one SQLite transaction.
 
-The cleanup candidate at `24441e81715b02dda87516149ccb64de29529f99` passed the standard pull-request verification suite against `main`:
+Quarantined candidates remain outside the trusted pointer.
 
-- strict TypeScript/typecheck;
-- 77/77 unit and integration tests across 9 files;
+## Runtime validation at persistence and network boundaries
+
+Structured SQLite JSON is parsed as unknown and validated with domain schemas for source origins/state/mode, run disposition/reason codes/validation summaries, snapshot status/sites and incident healing data.
+
+The public API uses shared executable Zod read-model contracts, and the browser parses successful responses through those same contracts.
+
+## Human-review evidence
+
+The deterministic presenter now exposes both decisions:
+
+- **Approve and re-run** — apply the mock repair, rerun and require full validation before recovery;
+- **Reject repair** — apply no selector change and keep the trusted snapshot protected.
+
+The mock remains explicitly labelled as a deterministic fixture. It demonstrates CoolPath's publication boundary, not a fabricated live Bright Data repair.
+
+## Coding-agent boundary
+
+`CODEX.md` defines the safe operational contract for a coding agent working with the pinned Scraper Studio collector. `docs/evidence/coding-agent-scraper-studio.md` records concrete repository-side Scraper Studio workflow work while explicitly separating that evidence from a live provider run.
+
+## CI
+
+The canonical verification gate remains:
+
 - ESLint;
 - Prettier;
-- production build;
-- `pnpm verify`;
+- strict TypeScript/typecheck;
+- unit/integration tests;
+- production builds, including the browser bundle;
 - `git diff --check`;
 - `git diff --check origin/main...HEAD`;
-- Playwright 10/10 across the configured desktop/mobile projects;
-- aggregate `CoolPath / full verification` job successful.
+- independent Playwright desktop/mobile E2E;
+- aggregate `CoolPath / full verification` status.
 
-## Preserved boundaries
+The final test count/status for the current HEAD must come from the final CI run; this document does not reuse an older green count as evidence for a newer commit.
 
-- No backend, database, ingestion, Bright Data collector, publication-gate, or source-normalization behavior was changed by this pass.
-- No real Bright Data collection was triggered.
-- Public search still filters only the already-published trusted snapshot.
-- Drift/heal/recovery remains deterministic mock/demo behavior in the frontend controls.
-- The separate post-refactor real Bright Data verification is still pending and is not implied by this cleanup.
+## Preserved safety boundaries
+
+- No real Bright Data credentials are committed or logged.
+- No real provider call is made by deterministic CI.
+- No source collector was recreated or replaced by this pass.
+- Quarantined output cannot replace the trusted snapshot.
+- Healing remains human-gated.
+- Recovery publication requires a fresh proving run.
+- The final real Bright Data verification remains a separate evidence gate and is not implied by green deterministic tests.

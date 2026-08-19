@@ -137,6 +137,7 @@ describe("snapshot publication", () => {
       snapshotId: baseline.id,
       runId: "baseline-run",
       promotedAt: "2026-08-17T12:00:00.000Z",
+      sourceState: "HEALTHY",
       recoveredByHealing: false,
       recordCount: 1
     });
@@ -156,6 +157,7 @@ describe("snapshot publication", () => {
       snapshotId: recovered.id,
       runId: "ordinary-recovery-run",
       promotedAt: "2026-08-17T12:10:00.000Z",
+      sourceState: "HEALTHY",
       recoveredByHealing: false,
       recordCount: 1
     });

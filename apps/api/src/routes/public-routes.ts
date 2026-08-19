@@ -1,5 +1,10 @@
 import { type CoolPathRepository } from "@coolpath/db";
-import { formatInstantInTimeZone } from "@coolpath/domain";
+import {
+  apiCityResponseSchema,
+  apiCitySummarySchema,
+  apiIncidentReadModelSchema,
+  formatInstantInTimeZone
+} from "@coolpath/domain";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { cacheableEnvelope, envelope, noStore, type Clock } from "../http-response.js";
@@ -21,20 +26,22 @@ export function registerPublicRoutes(
     for (const city of repository.listCities()) {
       ingestion.reconcileFreshness(city.source.id);
     }
-    const data = repository.listCities().map((city) => ({
-      id: city.id,
-      slug: city.slug,
-      displayName: city.displayName,
-      region: city.region,
-      timezone: city.timezone,
-      sourceStatus: city.source.currentState,
-      lastVerified: city.publishedSnapshot?.observedAt ?? null,
-      lastVerifiedLocal: city.publishedSnapshot
-        ? formatInstantInTimeZone(city.publishedSnapshot.observedAt, city.timezone)
-        : null,
-      siteCount: city.publishedSnapshot?.sites.length ?? 0,
-      mode: city.source.mode
-    }));
+    const data = apiCitySummarySchema.array().parse(
+      repository.listCities().map((city) => ({
+        id: city.id,
+        slug: city.slug,
+        displayName: city.displayName,
+        region: city.region,
+        timezone: city.timezone,
+        sourceStatus: city.source.currentState,
+        lastVerified: city.publishedSnapshot?.observedAt ?? null,
+        lastVerifiedLocal: city.publishedSnapshot
+          ? formatInstantInTimeZone(city.publishedSnapshot.observedAt, city.timezone)
+          : null,
+        siteCount: city.publishedSnapshot?.sites.length ?? 0,
+        mode: city.source.mode
+      }))
+    );
     return cacheableEnvelope(request, reply, data, now);
   });
 
@@ -53,7 +60,7 @@ export function registerPublicRoutes(
       return reply.status(404).send(envelope(null, now));
     }
 
-    const data = {
+    const data = apiCityResponseSchema.parse({
       city: {
         id: city.id,
         slug: city.slug,
@@ -83,7 +90,7 @@ export function registerPublicRoutes(
       latestRun: repository.getLatestRun(city.source.id),
       incident: repository.getCurrentIncident(city.source.id),
       timeline: repository.listTimeline(city.source.id, 50)
-    };
+    });
     return cacheableEnvelope(request, reply, data, now);
   });
 
@@ -93,6 +100,9 @@ export function registerPublicRoutes(
       noStore(reply);
       return reply.status(404).send(envelope(null, now));
     }
-    return cacheableEnvelope(request, reply, repository.getCurrentIncident(sourceId), now);
+    const incident = apiIncidentReadModelSchema
+      .nullable()
+      .parse(repository.getCurrentIncident(sourceId));
+    return cacheableEnvelope(request, reply, incident, now);
   });
 }

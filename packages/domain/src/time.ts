@@ -1,9 +1,13 @@
-export interface ZonedTimestamp {
-  instant: string;
-  timeZone: string;
-  localIso: string;
-  utcOffset: string;
-}
+import { z } from "zod";
+
+export const zonedTimestampSchema = z.object({
+  instant: z.iso.datetime({ offset: true }),
+  timeZone: z.string().trim().min(1),
+  localIso: z.iso.datetime({ offset: true }),
+  utcOffset: z.string().regex(/^[+-]\d{2}:\d{2}$/)
+});
+
+export type ZonedTimestamp = z.infer<typeof zonedTimestampSchema>;
 
 export function formatInstantInTimeZone(value: string | Date, timeZone: string): ZonedTimestamp {
   const instant = value instanceof Date ? new Date(value.getTime()) : new Date(value);
@@ -35,10 +39,10 @@ export function formatInstantInTimeZone(value: string | Date, timeZone: string):
     throw new Error("Could not determine timezone offset");
   }
 
-  return {
+  return zonedTimestampSchema.parse({
     instant: instant.toISOString(),
     timeZone,
     localIso: `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${utcOffset}`,
     utcOffset
-  };
+  });
 }

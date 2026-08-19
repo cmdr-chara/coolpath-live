@@ -30,6 +30,21 @@ test("protects the public list during layout drift and recovers after review", a
   await expect(page.getByLabel("Quarantine branch").getByText("Quarantine clear")).toBeVisible();
 });
 
+test("rejecting a repair keeps the trusted snapshot and does not rerun", async ({ page }) => {
+  await page.getByRole("link", { name: "Technical view" }).click();
+  await page.getByRole("button", { name: /Simulate drift/ }).click();
+  await page.getByRole("button", { name: /Prepare repair/ }).click();
+  await expect(page.getByText("Repair needs manual approval")).toBeVisible();
+
+  await page.getByRole("button", { name: /Reject repair/ }).click();
+  await expect(page.getByText("Temporarily unverifiable")).toBeVisible();
+  await expect(page.getByText(/Repair rejected\. No selector change was applied/)).toBeVisible();
+
+  await page.getByRole("link", { name: "Public directory" }).click();
+  await expect(page.getByRole("heading", { name: "Harbour Library" })).toBeVisible();
+  await expect(page.getByText("Last trusted report").first()).toBeVisible();
+});
+
 test("evidence drawer traps focus, escapes safely and restores the trigger", async ({ page }) => {
   const evidenceButton = page.getByRole("button", {
     name: "View evidence for Harbour Library"
