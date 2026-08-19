@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { coolingSiteSchema, type CoolingSite } from "@coolpath/domain";
 import { z } from "zod";
+import { PA211_SOURCE } from "./pa211-source.js";
 import type { NormalizationResult } from "./types.js";
 
-export const PA211_CANONICAL_URL =
-  "https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10";
+export const PA211_CANONICAL_URL = PA211_SOURCE.canonicalUrl;
 
 const pa211CollectorRowSchema = z.object({
   facility_name: z.string().trim().min(1).max(240),
@@ -55,8 +55,11 @@ function normalize(
 
     let evidenceUrl: URL;
     try {
-      evidenceUrl = new URL(row.evidence_url, PA211_CANONICAL_URL);
-      if (evidenceUrl.protocol !== "https:" || evidenceUrl.hostname !== "search.pa211.org") {
+      evidenceUrl = new URL(row.evidence_url, PA211_SOURCE.canonicalUrl);
+      if (
+        evidenceUrl.protocol !== "https:" ||
+        !PA211_SOURCE.allowedOrigins.includes(evidenceUrl.origin as (typeof PA211_SOURCE.allowedOrigins)[number])
+      ) {
         throw new Error("PA 211 evidence URL is outside the approved HTTPS origin");
       }
     } catch (error) {
@@ -73,8 +76,8 @@ function normalize(
 
     const site = coolingSiteSchema.safeParse({
       id,
-      cityId: "philadelphia",
-      sourceKey: "pa211-philadelphia-cooling",
+      cityId: PA211_SOURCE.city.id,
+      sourceKey: PA211_SOURCE.sourceId,
       name: row.facility_name,
       addressText: row.address,
       evidenceUrl: evidenceUrl.href,
