@@ -22,11 +22,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request<T>(
-  path: string,
-  parser: EnvelopeParser<T>,
-  init?: RequestInit
-): Promise<T> {
+async function request<T>(path: string, parser: EnvelopeParser<T>, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body && !headers.has("content-type")) headers.set("content-type", "application/json");
 
@@ -62,10 +58,7 @@ export async function getDirectory(): Promise<CityResponse> {
     : (cities.find((city) => city.mode === "real") ?? cities[0]);
 
   if (!selected) throw new Error("No configured city is available.");
-  return request(
-    `/api/cities/${encodeURIComponent(selected.slug)}`,
-    apiCityResponseEnvelopeSchema
-  );
+  return request(`/api/cities/${encodeURIComponent(selected.slug)}`, apiCityResponseEnvelopeSchema);
 }
 
 export function runDemoAction(action: "reset" | "drift" | "heal"): Promise<unknown> {
