@@ -3,7 +3,6 @@ import {
   classifyTransportFailure,
   evaluateCandidate,
   isWithinTtl,
-  reasonCodes,
   transitionSourceState,
   type EvaluatedValidationSummary,
   type ReasonCode,
@@ -90,7 +89,11 @@ export class IngestionService {
     return this.repository.markSourceStale({
       sourceId,
       occurredAt: now.toISOString(),
-      observedAt: snapshot.observedAt
+      observedAt: snapshot.observedAt,
+      state: transitionSourceState(source.currentState, {
+        type: "TTL_EXPIRED",
+        hasTrustedSnapshot: true
+      })
     });
   }
 
@@ -213,11 +216,19 @@ export class IngestionService {
     });
 
     if (validation.disposition === "publishable") {
+      const publishedState = transitionSourceState("CHECKING", {
+        type: "RUN_PASSED",
+        recovered: recoveredByHealing
+      });
+      if (publishedState !== "HEALTHY" && publishedState !== "RECOVERED") {
+        throw new Error("RUN_PASSED must produce a publishable source state");
+      }
       this.repository.publishSnapshot({
         sourceId,
         snapshotId: snapshot.id,
         runId,
         promotedAt: completedAt,
+        sourceState: publishedState,
         recoveredByHealing,
         recordCount: validation.recordCount
       });
@@ -271,7 +282,7 @@ export class IngestionService {
     if (incident.healState === "running" || incident.healState === "review_pending") {
       throw new SourceOperationStateError("A healing operation is already active");
     }
-    const prompt = buildFieldSpecificHealPrompt(asReasonCodes(incident.reasonCodes));
+    const prompt = buildFieldSpecificHealPrompt(incident.reasonCodes);
     this.repository.setSourceState(
       sourceId,
       transitionSourceState(source.currentState, { type: "HEAL_REQUESTED" })
@@ -306,7 +317,11 @@ export class IngestionService {
       prompt,
       diff: result.diff
     });
-    this.repository.setSourceState(sourceId, "REVIEW_PENDING");
+    const healingSource = this.requireSource(sourceId);
+    this.repository.setSourceState(
+      sourceId,
+      transitionSourceState(healingSource.currentState, { type: "HEAL_PREVIEW_READY" })
+    );
     this.repository.addTimelineEvent({
       sourceId,
       occurredAt: this.nowIso(),
@@ -351,7 +366,10 @@ export class IngestionService {
     }
     if (!approve) {
       this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "rejected" });
-      this.repository.setSourceState(sourceId, "BROKEN");
+      this.repository.setSourceState(
+        sourceId,
+        transitionSourceState(source.currentState, { type: "HEAL_REJECTED" })
+      );
       this.repository.addTimelineEvent({
         sourceId,
         occurredAt: this.nowIso(),
@@ -503,7 +521,7 @@ export class IngestionService {
     completedAt: string;
     disposition: string;
     normalizedRecordCount: number;
-    reasonCodes: readonly string[];
+    reasonCodes: readonly ReasonCode[];
   }): void {
     const durationMs = Math.max(
       0,
@@ -525,12 +543,6 @@ export class IngestionService {
   private nowIso(): string {
     return this.now().toISOString();
   }
-}
-
-const reasonCodeSet = new Set<string>(reasonCodes);
-
-function asReasonCodes(values: readonly string[]): ReasonCode[] {
-  return values.filter((value): value is ReasonCode => reasonCodeSet.has(value));
 }
 
 function isTimeoutFailure(error: unknown): boolean {
