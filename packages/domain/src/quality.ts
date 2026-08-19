@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { z } from "zod";
 import { coolingSiteSchema, type CoolingSite } from "./schemas.js";
 
 export const reasonCodes = [
@@ -26,8 +27,16 @@ export const reasonCodes = [
   "PROVIDER_TEMPORARY_FAILURE"
 ] as const;
 
+export const reasonCodeSchema = z.enum(reasonCodes);
+export const qualityDispositionSchema = z.enum([
+  "publishable",
+  "review_required",
+  "quarantined",
+  "inconclusive"
+]);
+
 export type ReasonCode = (typeof reasonCodes)[number];
-export type QualityDisposition = "publishable" | "review_required" | "quarantined" | "inconclusive";
+export type QualityDisposition = z.infer<typeof qualityDispositionSchema>;
 
 export interface CandidateMetadata {
   collectorId: string;
@@ -57,6 +66,15 @@ export interface SourceCoverageMetrics {
   recordsQuarantined: number;
 }
 
+export const sourceCoverageMetricsSchema = z.object({
+  providerRecordsReceived: z.number().int().nonnegative(),
+  normalizedRecordsAccepted: z.number().int().nonnegative(),
+  recordsFilteredNotLocations: z.number().int().nonnegative(),
+  exactDuplicatesRemoved: z.number().int().nonnegative(),
+  recordsRejectedByValidation: z.number().int().nonnegative(),
+  recordsQuarantined: z.number().int().nonnegative()
+});
+
 export interface QualityInput {
   records: unknown[];
   allowedOrigins: string[];
@@ -81,7 +99,27 @@ export interface EvaluatedValidationSummary extends ValidationSummary {
   coverage: SourceCoverageMetrics;
 }
 
+export const validationSummarySchema = z.object({
+  disposition: qualityDispositionSchema,
+  hardFailures: z.array(reasonCodeSchema),
+  softAnomalies: z.array(reasonCodeSchema),
+  recordCount: z.number().int().nonnegative(),
+  requiredFieldCompleteness: z.number().min(0).max(1),
+  optionalClaimCoverage: z.number().min(0).max(1),
+  contentHash: z.string(),
+  coverage: sourceCoverageMetricsSchema.optional(),
+  sites: z.array(coolingSiteSchema)
+});
+
+export const storedValidationSummarySchema = validationSummarySchema.omit({ sites: true });
+
 const htmlPattern = /<\/?(?:script|style|iframe|object|embed|[a-z][a-z0-9-]*)(?:\s[^>]*)?>/i;
+
+const MIN_RETAINED_YIELD_RATIO = 0.6;
+const MAX_EXPECTED_YIELD_RATIO = 1.5;
+const OPTIONAL_COVERAGE_DROP_THRESHOLD = 0.4;
+const MIN_RETAINED_IDENTITY_RATIO = 0.6;
+const SUSPICIOUS_CONTENT_CHANGE_RATIO = 0.75;
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
@@ -196,21 +234,21 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
     }
 
     const baselineCount = input.baseline.sites.length;
-    if (baselineCount > 0 && sites.length / baselineCount < 0.6) {
+    if (baselineCount > 0 && sites.length / baselineCount < MIN_RETAINED_YIELD_RATIO) {
       softAnomalies.push("MAJOR_YIELD_DROP");
     }
-    if (baselineCount > 0 && sites.length / baselineCount > 1.5) {
+    if (baselineCount > 0 && sites.length / baselineCount > MAX_EXPECTED_YIELD_RATIO) {
       softAnomalies.push("UNEXPECTED_EXTRA_RECORDS");
     }
 
     const baselineCoverage = optionalCoverage(input.baseline.sites);
-    if (baselineCoverage - optionalCoverage(sites) >= 0.4) {
+    if (baselineCoverage - optionalCoverage(sites) >= OPTIONAL_COVERAGE_DROP_THRESHOLD) {
       softAnomalies.push("OPTIONAL_FIELD_LOSS");
     }
 
     const baselineIds = new Set(input.baseline.sites.map((site) => site.id));
     const retained = sites.filter((site) => baselineIds.has(site.id)).length;
-    if (baselineCount > 0 && retained / baselineCount < 0.6) {
+    if (baselineCount > 0 && retained / baselineCount < MIN_RETAINED_IDENTITY_RATIO) {
       softAnomalies.push("IDENTITY_REPLACEMENT");
     }
   }
@@ -226,7 +264,7 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
       const previous = input.baseline?.sites.find((candidate) => candidate.id === site.id);
       return previous ? stableContentHash([previous]) !== stableContentHash([site]) : false;
     }).length;
-    if (sites.length > 0 && changed / sites.length > 0.75) {
+    if (sites.length > 0 && changed / sites.length > SUSPICIOUS_CONTENT_CHANGE_RATIO) {
       softAnomalies.push("SUSPICIOUS_CONTENT_CHANGE");
     }
   }
