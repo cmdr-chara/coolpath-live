@@ -10,9 +10,11 @@ No real Bright Data collection was triggered during this hardening pass.
 
 The domain package separates browser-safe contracts from server-side policy and hashing. Public API payloads are runtime-validated before leaving Fastify and again before the browser accepts them. The browser consumes the shared contract instead of maintaining a parallel hand-written DTO graph.
 
+`IngestionService` owns collector/healing orchestration. Freshness, trusted-snapshot state semantics and restart recovery are delegated to `SourceLifecycleService`, so lifecycle persistence is no longer mixed into the collector workflow itself.
+
 ## Scraper Studio lifecycle hardening
 
-The real Bright Data adapter now models the provider workflow as asynchronous rather than treating an approval response as immediate collector readiness.
+The real Bright Data adapter models the provider workflow as asynchronous rather than treating an approval response as immediate collector readiness.
 
 The implemented sequence is:
 
@@ -35,7 +37,7 @@ Important guarantees:
 
 ## Canonical source policy
 
-PA211 production identity and trust policy are now defined once in `packages/source-adapters/src/pa211-source.ts` and reused by:
+PA211 production identity and trust policy are defined once in `packages/source-adapters/src/pa211-source.ts` and reused by:
 
 - API seed configuration;
 - PA211 origin/source normalization;
@@ -50,25 +52,47 @@ That removes manual duplication of source ID, city identity, canonical URL, allo
 
 Freshness reconciliation does not overwrite `CHECKING`, `HEALING` or `REVIEW_PENDING`, and startup explicitly reconciles interrupted persisted operations. Interrupted checks/healing cannot promote a candidate or replace the trusted pointer.
 
+`SourceLifecycleService` owns freshness reconciliation, interrupted-operation recovery, trusted-snapshot context and healing-failure state calculation. `IngestionService` delegates those concerns instead of duplicating lifecycle persistence decisions.
+
 ## Runtime topology
 
 The supported submission topology is explicit: one API writer process per SQLite database. The process-local source coordinator is not described as a distributed lock. See `docs/runtime-constraints.md`.
 
+The publication transaction additionally uses a compare-and-set pointer update and monotonic run/observation checks. That means an accidentally delayed older proving run cannot replace a newer trusted publication even if execution escapes the normal process-local single-flight boundary.
+
 ## Transactional publication
 
-`CoolPathRepository` keeps the final trust switch atomic. Candidate validation happens before publication; publication then performs trusted-snapshot supersession, candidate promotion, trusted pointer movement, source-state publication, incident resolution and publication/recovery timeline evidence in one SQLite transaction.
+`CoolPathRepository` keeps the final trust switch atomic. Candidate validation happens before publication; publication then verifies the proving run, rejects time-regressive publication, compare-and-sets the trusted pointer, supersedes the previous snapshot, promotes the candidate, publishes source state, resolves the active incident and records publication/recovery evidence in one SQLite transaction.
 
-Quarantined candidates remain outside the trusted pointer.
+The repository no longer exposes the old `promoteSnapshot()` primitive that could move the pointer without the complete proving-run/state/evidence workflow.
+
+Quarantined candidates remain outside the trusted pointer. A candidate whose run started before the currently trusted run, or whose observation timestamp would move public evidence backward, raises `PublicationConflictError` and leaves the trusted pointer unchanged.
+
+## Persistence invariants
+
+SQLite now enforces **at most one unresolved incident per source** with a partial unique index. `openIncident()` still merges evidence at the application boundary, but the invariant no longer depends solely on a prior read being race-free.
+
+`reset()` is explicitly transactional: if any table deletion fails, the earlier deletions roll back instead of leaving a half-reset database.
+
+Adversarial repository tests cover:
+
+- older-run publication attempts;
+- observation-time regression;
+- unresolved-incident uniqueness at the SQLite boundary;
+- rollback of a deliberately interrupted reset;
+- corrupt persisted JSON failing closed.
 
 ## Runtime validation at persistence and network boundaries
 
 Structured SQLite JSON is parsed as unknown and validated with domain schemas for source origins/state/mode, run disposition/reason codes/validation summaries, snapshot status/sites and incident healing data.
 
+Persistence mapping also validates incident severity and timeline tone rather than asserting those strings into narrower TypeScript types.
+
 The public API uses shared executable Zod read-model contracts, and the browser parses successful responses through those same contracts.
 
 ## Human-review evidence
 
-The deterministic presenter now exposes both decisions:
+The deterministic presenter exposes both decisions:
 
 - **Approve and re-run** — apply the mock repair, rerun and require full validation before recovery;
 - **Reject repair** — apply no selector change and keep the trusted snapshot protected.
@@ -101,6 +125,7 @@ The final test count/status for the current HEAD must come from the final CI run
 - No real provider call is made by deterministic CI.
 - No source collector was recreated or replaced by this pass.
 - Quarantined output cannot replace the trusted snapshot.
+- A delayed older run cannot replace a newer trusted snapshot.
 - Healing remains human-gated.
 - Recovery publication requires a fresh proving run.
 - The final real Bright Data verification remains a separate evidence gate and is not implied by green deterministic tests.
