@@ -3,7 +3,7 @@ import {
   qualityDispositionSchema,
   reasonCodeSchema,
   sourceCoverageMetricsSchema
-} from "./quality.js";
+} from "./quality-contracts.js";
 import { coolingSiteSchema, snapshotStatusSchema } from "./schemas.js";
 import { sourceStateSchema } from "./state-machine.js";
 import { zonedTimestampSchema } from "./time.js";
