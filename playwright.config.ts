@@ -20,6 +20,7 @@ export default defineConfig({
     {
       command: "pnpm --filter @coolpath/web dev --host 127.0.0.1",
       url: "http://127.0.0.1:5173",
+      env: { VITE_DISABLE_THREE: "true" },
       reuseExistingServer: !process.env.CI
     }
   ],

@@ -1,8 +1,8 @@
 import { ArrowSquareOut, MagnifyingGlass, ShieldCheck } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import philadelphiaPark from "../assets/philadelphia-park.svg";
 import { useEntranceMotion } from "../hooks/useEntranceMotion";
 import type { CityResponse, CoolingSite } from "../types";
+import { CoolingParkScene } from "./CoolingParkScene";
 import { formatInstant } from "./format";
 import { SiteList } from "./SiteList";
 import { statusContent } from "./status-content";
@@ -31,9 +31,7 @@ export function DirectoryView({
   return (
     <main id="main" ref={viewRef} className="page-width directory-view">
       <section className="directory-hero" aria-labelledby="directory-title" data-motion-section>
-        <div className="directory-hero__art" aria-hidden="true">
-          <img src={philadelphiaPark} alt="" />
-        </div>
+        <CoolingParkScene tone={status.tone} />
 
         <div className="directory-hero__copy">
           <p className="kicker">
