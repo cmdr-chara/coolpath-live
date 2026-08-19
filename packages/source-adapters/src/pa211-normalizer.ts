@@ -56,10 +56,10 @@ function normalize(
     let evidenceUrl: URL;
     try {
       evidenceUrl = new URL(row.evidence_url, PA211_SOURCE.canonicalUrl);
-      if (
-        evidenceUrl.protocol !== "https:" ||
-        !PA211_SOURCE.allowedOrigins.includes(evidenceUrl.origin as (typeof PA211_SOURCE.allowedOrigins)[number])
-      ) {
+      const originAllowed = PA211_SOURCE.allowedOrigins.some(
+        (allowedOrigin) => allowedOrigin === evidenceUrl.origin
+      );
+      if (evidenceUrl.protocol !== "https:" || !originAllowed) {
         throw new Error("PA 211 evidence URL is outside the approved HTTPS origin");
       }
     } catch (error) {
