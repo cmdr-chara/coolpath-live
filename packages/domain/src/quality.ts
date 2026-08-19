@@ -1,87 +1,30 @@
 import { createHash } from "node:crypto";
 import { coolingSiteSchema, type CoolingSite } from "./schemas.js";
+import type {
+  CandidateCoverageInput,
+  CandidateMetadata,
+  EvaluatedValidationSummary,
+  QualityDisposition,
+  ReasonCode
+} from "./quality-contracts.js";
 
-export const reasonCodes = [
-  "ZERO_ROWS",
-  "INVALID_SCHEMA",
-  "MISSING_NAME",
-  "MISSING_ADDRESS",
-  "MISSING_EVIDENCE_URL",
-  "NON_HTTPS_URL",
-  "OFF_ORIGIN_URL",
-  "DUPLICATE_IDENTITY",
-  "INVALID_DATE_ORDER",
-  "COLLECTOR_IDENTITY_CHANGED",
-  "SCHEMA_IDENTITY_CHANGED",
-  "HTML_CONTAMINATION",
-  "MAJOR_YIELD_DROP",
-  "OPTIONAL_FIELD_LOSS",
-  "SUSPICIOUS_CONTENT_CHANGE",
-  "IDENTITY_REPLACEMENT",
-  "UNEXPECTED_EXTRA_RECORDS",
-  "TRANSPORT_FORBIDDEN",
-  "TRANSPORT_RATE_LIMITED",
-  "TRANSPORT_TIMEOUT",
-  "TRANSPORT_DNS_FAILURE",
-  "PROVIDER_TEMPORARY_FAILURE"
-] as const;
-
-export type ReasonCode = (typeof reasonCodes)[number];
-export type QualityDisposition = "publishable" | "review_required" | "quarantined" | "inconclusive";
-
-export interface CandidateMetadata {
-  collectorId: string;
-  collectorVersion: string;
-  schemaVersion: string;
-}
-
-export interface BaselineMetadata extends CandidateMetadata {
-  sites: CoolingSite[];
-  contentHash: string;
-}
-
-export interface CandidateCoverageInput {
-  providerRecordsReceived: number;
-  normalizedRecordsAccepted: number;
-  recordsFilteredNotLocations: number;
-  exactDuplicatesRemoved: number;
-  recordsRejectedBySourceValidation: number;
-}
-
-export interface SourceCoverageMetrics {
-  providerRecordsReceived: number;
-  normalizedRecordsAccepted: number;
-  recordsFilteredNotLocations: number;
-  exactDuplicatesRemoved: number;
-  recordsRejectedByValidation: number;
-  recordsQuarantined: number;
-}
+export * from "./quality-contracts.js";
 
 export interface QualityInput {
   records: unknown[];
   allowedOrigins: string[];
   candidate: CandidateMetadata;
-  baseline?: BaselineMetadata;
+  baseline?: CandidateMetadata & { sites: CoolingSite[]; contentHash: string };
   coverage?: CandidateCoverageInput;
 }
 
-export interface ValidationSummary {
-  disposition: QualityDisposition;
-  hardFailures: ReasonCode[];
-  softAnomalies: ReasonCode[];
-  recordCount: number;
-  requiredFieldCompleteness: number;
-  optionalClaimCoverage: number;
-  contentHash: string;
-  coverage?: SourceCoverageMetrics;
-  sites: CoolingSite[];
-}
-
-export interface EvaluatedValidationSummary extends ValidationSummary {
-  coverage: SourceCoverageMetrics;
-}
-
 const htmlPattern = /<\/?(?:script|style|iframe|object|embed|[a-z][a-z0-9-]*)(?:\s[^>]*)?>/i;
+
+const MIN_RETAINED_YIELD_RATIO = 0.6;
+const MAX_EXPECTED_YIELD_RATIO = 1.5;
+const OPTIONAL_COVERAGE_DROP_THRESHOLD = 0.4;
+const MIN_RETAINED_IDENTITY_RATIO = 0.6;
+const SUSPICIOUS_CONTENT_CHANGE_RATIO = 0.75;
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
@@ -149,8 +92,10 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
   const hardFailures: ReasonCode[] = [];
   const softAnomalies: ReasonCode[] = [];
   const sites: CoolingSite[] = [];
+  const sourceCoverage = coverageFor(input);
 
   if (input.records.length === 0) hardFailures.push("ZERO_ROWS");
+  if (sourceCoverage.recordsRejectedBySourceValidation > 0) hardFailures.push("INVALID_SCHEMA");
 
   for (const record of input.records) {
     const parsed = coolingSiteSchema.safeParse(record);
@@ -196,21 +141,21 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
     }
 
     const baselineCount = input.baseline.sites.length;
-    if (baselineCount > 0 && sites.length / baselineCount < 0.6) {
+    if (baselineCount > 0 && sites.length / baselineCount < MIN_RETAINED_YIELD_RATIO) {
       softAnomalies.push("MAJOR_YIELD_DROP");
     }
-    if (baselineCount > 0 && sites.length / baselineCount > 1.5) {
+    if (baselineCount > 0 && sites.length / baselineCount > MAX_EXPECTED_YIELD_RATIO) {
       softAnomalies.push("UNEXPECTED_EXTRA_RECORDS");
     }
 
     const baselineCoverage = optionalCoverage(input.baseline.sites);
-    if (baselineCoverage - optionalCoverage(sites) >= 0.4) {
+    if (baselineCoverage - optionalCoverage(sites) >= OPTIONAL_COVERAGE_DROP_THRESHOLD) {
       softAnomalies.push("OPTIONAL_FIELD_LOSS");
     }
 
     const baselineIds = new Set(input.baseline.sites.map((site) => site.id));
     const retained = sites.filter((site) => baselineIds.has(site.id)).length;
-    if (baselineCount > 0 && retained / baselineCount < 0.6) {
+    if (baselineCount > 0 && retained / baselineCount < MIN_RETAINED_IDENTITY_RATIO) {
       softAnomalies.push("IDENTITY_REPLACEMENT");
     }
   }
@@ -226,7 +171,7 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
       const previous = input.baseline?.sites.find((candidate) => candidate.id === site.id);
       return previous ? stableContentHash([previous]) !== stableContentHash([site]) : false;
     }).length;
-    if (sites.length > 0 && changed / sites.length > 0.75) {
+    if (sites.length > 0 && changed / sites.length > SUSPICIOUS_CONTENT_CHANGE_RATIO) {
       softAnomalies.push("SUSPICIOUS_CONTENT_CHANGE");
     }
   }
@@ -235,7 +180,6 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
   const soft = unique(softAnomalies);
   const disposition: QualityDisposition =
     hard.length > 0 ? "quarantined" : soft.length > 0 ? "review_required" : "publishable";
-  const sourceCoverage = coverageFor(input);
   const contractRejected = Math.max(0, input.records.length - sites.length);
 
   return {
@@ -270,7 +214,10 @@ export function classifyTransportFailure(failure: TransportFailure): ReasonCode 
   if (failure.kind === "timeout") return "TRANSPORT_TIMEOUT";
   if (failure.kind === "dns") return "TRANSPORT_DNS_FAILURE";
   if (failure.kind === "provider_temporary") return "PROVIDER_TEMPORARY_FAILURE";
+  if (failure.status === 401) return "TRANSPORT_UNAUTHORIZED";
   if (failure.status === 403) return "TRANSPORT_FORBIDDEN";
+  if (failure.status === 404) return "COLLECTOR_NOT_FOUND";
+  if (failure.status === 422) return "PROVIDER_INPUT_INVALID";
   if (failure.status === 429) return "TRANSPORT_RATE_LIMITED";
   return "PROVIDER_TEMPORARY_FAILURE";
 }

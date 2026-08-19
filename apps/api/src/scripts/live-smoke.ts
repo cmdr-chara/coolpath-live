@@ -1,8 +1,8 @@
 import { evaluateCandidate } from "@coolpath/domain";
 import {
   BrightDataScraperStudioClient,
-  normalizePa211Rows,
-  PA211_CANONICAL_URL
+  normalizePa211RowsWithMetrics,
+  PA211_SOURCE
 } from "@coolpath/source-adapters";
 import { getConfig } from "../config.js";
 
@@ -21,13 +21,14 @@ const client = new BrightDataScraperStudioClient({
 });
 const result = await client.runCollector({
   collectorId: config.PRIMARY_COLLECTOR_ID,
-  sourceId: "pa211-philadelphia-cooling",
-  canonicalUrl: PA211_CANONICAL_URL
+  sourceId: PA211_SOURCE.sourceId,
+  canonicalUrl: PA211_SOURCE.canonicalUrl
 });
-const sites = normalizePa211Rows(result.records, result.fetchedAt);
+const normalization = normalizePa211RowsWithMetrics(result.records, result.fetchedAt);
 const validation = evaluateCandidate({
-  records: sites,
-  allowedOrigins: ["https://search.pa211.org"],
+  records: normalization.records,
+  allowedOrigins: [...PA211_SOURCE.allowedOrigins],
+  coverage: normalization.coverage,
   candidate: {
     collectorId: result.collectorId,
     collectorVersion: result.collectorVersion,
@@ -39,7 +40,11 @@ process.stdout.write(
     {
       collectorId: result.collectorId,
       mode: result.mode,
-      recordCount: validation.recordCount,
+      providerRecordsReceived: validation.coverage.providerRecordsReceived,
+      normalizedRecordsAccepted: validation.coverage.normalizedRecordsAccepted,
+      recordsFilteredNotLocations: validation.coverage.recordsFilteredNotLocations,
+      exactDuplicatesRemoved: validation.coverage.exactDuplicatesRemoved,
+      recordsRejectedByValidation: validation.coverage.recordsRejectedByValidation,
       disposition: validation.disposition,
       reasonCodes: [...validation.hardFailures, ...validation.softAnomalies],
       rawSha256: result.rawSha256

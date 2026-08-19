@@ -16,10 +16,17 @@ export interface CollectorRunResult {
   mode: "real" | "mock";
 }
 
+export interface HealDiff {
+  field: string;
+  before: string;
+  after: string;
+}
+
 export interface CollectorStatus {
   collectorId: string;
   status: "ready" | "running" | "healing" | "review_pending" | "failed";
   version: string;
+  diff?: HealDiff[];
 }
 
 export interface HealRequest {
@@ -27,12 +34,6 @@ export interface HealRequest {
   sourceId: string;
   canonicalUrl: string;
   prompt: string;
-}
-
-export interface HealDiff {
-  field: string;
-  before: string;
-  after: string;
 }
 
 export interface HealResult {

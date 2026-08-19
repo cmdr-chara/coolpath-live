@@ -134,9 +134,39 @@ describe("Bright Data Scraper Studio client", () => {
       status: 403
     });
     await expect(operation).rejects.not.toThrow(/super-secret-token/);
+    expect(captured).toHaveLength(1);
   });
 
-  it("uses field-specific healing endpoints and an explicit approval decision", async () => {
+  it("retries transient read failures without retrying the paid trigger", async () => {
+    const captured: CapturedRequest[] = [];
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollIntervalMs: 1,
+      pollTimeoutMs: 1_000,
+      fetchImplementation: sequencedFetch(
+        [
+          new Response(JSON.stringify({ collection_id: "collection-retry" }), { status: 200 }),
+          new Response(null, { status: 503 }),
+          new Response(null, { status: 502 }),
+          new Response(JSON.stringify([{ name: "Recovered read" }]), { status: 200 })
+        ],
+        captured
+      )
+    });
+
+    await expect(
+      client.runCollector({
+        sourceId: "source-1",
+        collectorId: "collector-1",
+        canonicalUrl: "https://city.example/cooling"
+      })
+    ).resolves.toMatchObject({ records: [{ name: "Recovered read" }] });
+
+    expect(captured.filter((request) => request.url.pathname === "/dca/trigger")).toHaveLength(1);
+    expect(captured.filter((request) => request.url.pathname === "/dca/dataset")).toHaveLength(3);
+  });
+
+  it("uses field-specific healing endpoints and waits for the approved repair to finish", async () => {
     const captured: CapturedRequest[] = [];
     const client = new BrightDataScraperStudioClient({
       apiToken: "test-token",
@@ -153,7 +183,9 @@ describe("Bright Data Scraper Studio client", () => {
             }),
             { status: 200 }
           ),
-          new Response(null, { status: 200 })
+          new Response(null, { status: 200 }),
+          new Response(JSON.stringify({ status: "saving" }), { status: 200 }),
+          new Response(JSON.stringify({ status: "done", version: "8" }), { status: 200 })
         ],
         captured
       )
@@ -165,7 +197,7 @@ describe("Bright Data Scraper Studio client", () => {
       canonicalUrl: "https://city.example/cooling",
       prompt: "Repair only the name field."
     });
-    await client.decideHeal({
+    const decision = await client.decideHeal({
       collectorId: "collector-1",
       canonicalUrl: "https://city.example/cooling",
       jobId: result.jobId,
@@ -173,6 +205,7 @@ describe("Bright Data Scraper Studio client", () => {
     });
 
     expect(result.diff).toEqual([{ field: "name", before: ".old", after: ".new" }]);
+    expect(decision).toMatchObject({ status: "ready", version: "8" });
     expect(captured[0]?.url.pathname).toBe("/dca/collectors/collector-1/refactor_template");
     expect(parseJsonBody(captured[0]?.init.body)).toEqual({
       prompt: "Repair only the name field.",
@@ -182,6 +215,59 @@ describe("Bright Data Scraper Studio client", () => {
     expect(parseJsonBody(captured[3]?.init.body)).toEqual({
       message: true,
       auto_save: true
+    });
+    expect(captured[4]?.url.pathname).toBe(
+      "/dca/collectors/collector-1/refactor_template/progress"
+    );
+    expect(captured).toHaveLength(6);
+  });
+
+  it("returns to manual review if Bright Data requests another approval gate", async () => {
+    const client = new BrightDataScraperStudioClient({
+      apiToken: "test-token",
+      pollIntervalMs: 1,
+      pollTimeoutMs: 1_000,
+      fetchImplementation: sequencedFetch(
+        [
+          new Response(JSON.stringify({ job_id: "heal-multi" }), { status: 200 }),
+          new Response(
+            JSON.stringify({
+              status: "pending_answer",
+              diff: [{ field: "name", before: ".a", after: ".b" }]
+            }),
+            { status: 200 }
+          ),
+          new Response(null, { status: 200 }),
+          new Response(
+            JSON.stringify({
+              status: "pending_answer",
+              diff: [{ field: "addressText", before: ".old-address", after: ".new-address" }]
+            }),
+            { status: 200 }
+          )
+        ],
+        []
+      )
+    });
+
+    const preview = await client.requestHeal({
+      sourceId: "source-1",
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling",
+      prompt: "Repair the failed fields."
+    });
+    const decision = await client.decideHeal({
+      collectorId: "collector-1",
+      canonicalUrl: "https://city.example/cooling",
+      jobId: preview.jobId,
+      approve: true
+    });
+
+    expect(decision).toEqual({
+      collectorId: "collector-1",
+      status: "review_pending",
+      version: "unknown",
+      diff: [{ field: "addressText", before: ".old-address", after: ".new-address" }]
     });
   });
 
