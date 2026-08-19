@@ -80,7 +80,8 @@ export class MockScraperStudioClient implements ScraperStudioClient {
     return Promise.resolve({
       collectorId: input.collectorId,
       status: input.approve ? "ready" : "failed",
-      version: input.approve ? "2" : "1"
+      version: input.approve ? "2" : "1",
+      diff: []
     });
   }
 

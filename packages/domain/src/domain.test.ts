@@ -99,7 +99,7 @@ describe("quality gate", () => {
     expect(result.softAnomalies).toContain("MAJOR_YIELD_DROP");
   });
 
-  it("combines exclusive normalization counts with contract rejection and quarantine", () => {
+  it("quarantines source-validation rejection and preserves exclusive coverage accounting", () => {
     const result = evaluateCandidate({
       records: [baseSite, { name: "missing required fields" }],
       allowedOrigins: ["https://example.gov"],
@@ -113,6 +113,8 @@ describe("quality gate", () => {
       }
     });
 
+    expect(result.disposition).toBe("quarantined");
+    expect(result.hardFailures).toContain("INVALID_SCHEMA");
     expect(result.coverage).toEqual({
       providerRecordsReceived: 5,
       normalizedRecordsAccepted: 2,
@@ -124,7 +126,10 @@ describe("quality gate", () => {
   });
 
   it.each([
+    [{ kind: "http", status: 401 } as const, "TRANSPORT_UNAUTHORIZED"],
     [{ kind: "http", status: 403 } as const, "TRANSPORT_FORBIDDEN"],
+    [{ kind: "http", status: 404 } as const, "COLLECTOR_NOT_FOUND"],
+    [{ kind: "http", status: 422 } as const, "PROVIDER_INPUT_INVALID"],
     [{ kind: "http", status: 429 } as const, "TRANSPORT_RATE_LIMITED"],
     [{ kind: "timeout" } as const, "TRANSPORT_TIMEOUT"],
     [{ kind: "dns" } as const, "TRANSPORT_DNS_FAILURE"]

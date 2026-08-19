@@ -92,8 +92,10 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
   const hardFailures: ReasonCode[] = [];
   const softAnomalies: ReasonCode[] = [];
   const sites: CoolingSite[] = [];
+  const sourceCoverage = coverageFor(input);
 
   if (input.records.length === 0) hardFailures.push("ZERO_ROWS");
+  if (sourceCoverage.recordsRejectedBySourceValidation > 0) hardFailures.push("INVALID_SCHEMA");
 
   for (const record of input.records) {
     const parsed = coolingSiteSchema.safeParse(record);
@@ -178,7 +180,6 @@ export function evaluateCandidate(input: QualityInput): EvaluatedValidationSumma
   const soft = unique(softAnomalies);
   const disposition: QualityDisposition =
     hard.length > 0 ? "quarantined" : soft.length > 0 ? "review_required" : "publishable";
-  const sourceCoverage = coverageFor(input);
   const contractRejected = Math.max(0, input.records.length - sites.length);
 
   return {
@@ -213,7 +214,10 @@ export function classifyTransportFailure(failure: TransportFailure): ReasonCode 
   if (failure.kind === "timeout") return "TRANSPORT_TIMEOUT";
   if (failure.kind === "dns") return "TRANSPORT_DNS_FAILURE";
   if (failure.kind === "provider_temporary") return "PROVIDER_TEMPORARY_FAILURE";
+  if (failure.status === 401) return "TRANSPORT_UNAUTHORIZED";
   if (failure.status === 403) return "TRANSPORT_FORBIDDEN";
+  if (failure.status === 404) return "COLLECTOR_NOT_FOUND";
+  if (failure.status === 422) return "PROVIDER_INPUT_INVALID";
   if (failure.status === 429) return "TRANSPORT_RATE_LIMITED";
   return "PROVIDER_TEMPORARY_FAILURE";
 }

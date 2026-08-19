@@ -14,8 +14,19 @@ const jobEnvelopeSchema = z.object({
   id: z.string().optional(),
   job_id: z.string().optional(),
   status: z.string().optional(),
-  response_id: z.string().optional()
+  response_id: z.string().optional(),
+  version: z.union([z.string(), z.number()]).optional()
 });
+
+const healDiffEntrySchema = z.object({
+  field: z.string().min(1),
+  before: z.string(),
+  after: z.string()
+});
+
+const healProgressSchema = jobEnvelopeSchema
+  .extend({ diff: z.array(healDiffEntrySchema).optional() })
+  .passthrough();
 
 const collectionEnvelopeSchema = z.object({ collection_id: z.string().min(1) });
 
@@ -32,7 +43,9 @@ function parseDatasetRecords(body: string): unknown[] | undefined {
     try {
       return lines.map((line) => JSON.parse(line) as unknown);
     } catch {
-      throw new Error("Bright Data dataset response was neither JSON nor JSON Lines");
+      throw new BrightDataProtocolError(
+        "Bright Data dataset response was neither JSON nor JSON Lines"
+      );
     }
   }
 }
@@ -45,6 +58,29 @@ function abortReason(signal: AbortSignal): Error {
 
 function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) throw abortReason(signal);
+}
+
+function normalizedStatus(status: string | undefined): string {
+  return (status ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function isReviewStatus(status: string): boolean {
+  return ["pending_answer", "review_pending", "awaiting_approval"].includes(status);
+}
+
+function isSuccessfulHealStatus(status: string): boolean {
+  return ["done", "completed", "ready", "success", "succeeded"].includes(status);
+}
+
+function isFailedHealStatus(status: string): boolean {
+  return ["failed", "error", "cancelled", "canceled", "rejected"].includes(status);
+}
+
+function isRetryableReadStatus(status: number): boolean {
+  return status === 429 || status >= 500;
 }
 
 export interface BrightDataClientOptions {
@@ -70,6 +106,13 @@ export class BrightDataTimeoutError extends Error {
   constructor(message = "Timed out waiting for Bright Data") {
     super(message);
     this.name = "AbortError";
+  }
+}
+
+export class BrightDataProtocolError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrightDataProtocolError";
   }
 }
 
@@ -110,15 +153,14 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       const triggerBody: unknown = await response.json();
       throwIfAborted(signal);
       const { collection_id: collectionId } = collectionEnvelopeSchema.parse(triggerBody);
-      const records = await this.pollCollection(collectionId, signal);
-      const raw = JSON.stringify(records);
+      const dataset = await this.pollCollection(collectionId, signal);
       return {
         collectorId: input.collectorId,
         collectorVersion: response.headers.get("x-collector-version") ?? "unknown",
         schemaVersion: "1",
         fetchedAt: this.now().toISOString(),
-        records,
-        rawSha256: createHash("sha256").update(raw).digest("hex"),
+        records: dataset.records,
+        rawSha256: createHash("sha256").update(dataset.rawBody).digest("hex"),
         mode: "real"
       };
     });
@@ -134,9 +176,24 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       const payload: unknown = await response.json();
       throwIfAborted(signal);
       const parsed = jobEnvelopeSchema.passthrough().parse(payload);
-      const rawStatus = parsed.status ?? "ready";
-      const status: CollectorStatus["status"] = rawStatus.includes("fail") ? "failed" : "ready";
-      return { collectorId, status, version: "unknown" };
+      const rawStatus = normalizedStatus(parsed.status);
+      const status: CollectorStatus["status"] = isReviewStatus(rawStatus)
+        ? "review_pending"
+        : rawStatus.includes("heal") || rawStatus.includes("refactor")
+          ? "healing"
+          : rawStatus.includes("run") ||
+              rawStatus.includes("queue") ||
+              rawStatus.includes("process") ||
+              rawStatus.includes("build")
+            ? "running"
+            : isFailedHealStatus(rawStatus)
+              ? "failed"
+              : "ready";
+      return {
+        collectorId,
+        status,
+        version: parsed.version === undefined ? "unknown" : String(parsed.version)
+      };
     });
   }
 
@@ -160,7 +217,7 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       const jobId =
         started.job_id ?? started.id ?? started.response_id ?? `heal:${input.collectorId}`;
 
-      const preview = await this.pollHealProgress(input.collectorId, signal);
+      const preview = await this.pollHealReview(input.collectorId, signal);
       return {
         collectorId: input.collectorId,
         jobId,
@@ -173,6 +230,9 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
 
   decideHeal(input: HealDecision): Promise<CollectorStatus> {
     return this.withOperationTimeout(async (signal) => {
+      if (!input.jobId.trim()) {
+        throw new BrightDataProtocolError("A healing decision requires the reviewed job identity");
+      }
       const response = await this.call(
         `/dca/collectors/${encodeURIComponent(input.collectorId)}/resume_automation_job`,
         {
@@ -184,10 +244,31 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       );
       await response.text();
       throwIfAborted(signal);
+
+      if (!input.approve) {
+        return {
+          collectorId: input.collectorId,
+          status: "failed",
+          version: "unknown",
+          diff: []
+        };
+      }
+
+      const completion = await this.pollHealCompletion(input.collectorId, signal);
+      const completionStatus = normalizedStatus(completion.status);
+      if (isReviewStatus(completionStatus)) {
+        return {
+          collectorId: input.collectorId,
+          status: "review_pending",
+          version: completion.version === undefined ? "unknown" : String(completion.version),
+          diff: this.extractDiff(completion)
+        };
+      }
       return {
         collectorId: input.collectorId,
-        status: input.approve ? "ready" : "failed",
-        version: "unknown"
+        status: "ready",
+        version: completion.version === undefined ? "unknown" : String(completion.version),
+        diff: []
       };
     });
   }
@@ -202,10 +283,13 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
     init: RequestInit,
     signal: AbortSignal
   ): Promise<Response> {
-    throwIfAborted(signal);
-    const response = await this.request(
-      typeof path === "string" ? new URL(path, this.apiBaseUrl) : path,
-      {
+    const url = typeof path === "string" ? new URL(path, this.apiBaseUrl) : path;
+    const method = (init.method ?? "GET").toUpperCase();
+    const maxAttempts = method === "GET" ? 3 : 1;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      throwIfAborted(signal);
+      const response = await this.request(url, {
         ...init,
         redirect: "error",
         signal,
@@ -214,16 +298,30 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
           accept: "application/json",
           ...init.headers
         }
+      });
+      throwIfAborted(signal);
+      if (response.ok) return response;
+
+      if (
+        method === "GET" &&
+        attempt < maxAttempts &&
+        isRetryableReadStatus(response.status)
+      ) {
+        await response.text();
+        throwIfAborted(signal);
+        await this.sleep(signal, Math.min(this.pollIntervalMs * 2 ** (attempt - 1), 5_000));
+        continue;
       }
-    );
-    throwIfAborted(signal);
-    if (!response.ok) {
       throw new BrightDataHttpError(response.status, response.statusText);
     }
-    return response;
+
+    throw new BrightDataProtocolError("Bright Data request exhausted its retry policy");
   }
 
-  private async pollHealProgress(collectorId: string, signal: AbortSignal): Promise<unknown> {
+  private async pollHealReview(
+    collectorId: string,
+    signal: AbortSignal
+  ): Promise<z.infer<typeof healProgressSchema>> {
     while (true) {
       const response = await this.call(
         `/dca/collectors/${encodeURIComponent(collectorId)}/refactor_template/progress`,
@@ -238,15 +336,53 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       }
       const payload: unknown = await response.json();
       throwIfAborted(signal);
-      const status = jobEnvelopeSchema.passthrough().parse(payload).status;
-      if (status === "pending_answer" || status === "review_pending" || status === "done") {
-        return payload;
+      const parsed = healProgressSchema.parse(payload);
+      const status = normalizedStatus(parsed.status);
+      if (isReviewStatus(status)) return parsed;
+      if (isSuccessfulHealStatus(status)) {
+        throw new BrightDataProtocolError(
+          "Bright Data self-healing completed without the required human review gate"
+        );
+      }
+      if (isFailedHealStatus(status)) {
+        throw new BrightDataProtocolError(`Bright Data self-healing failed with status ${status}`);
       }
       await this.sleep(signal);
     }
   }
 
-  private async pollCollection(collectionId: string, signal: AbortSignal): Promise<unknown[]> {
+  private async pollHealCompletion(
+    collectorId: string,
+    signal: AbortSignal
+  ): Promise<z.infer<typeof healProgressSchema>> {
+    while (true) {
+      const response = await this.call(
+        `/dca/collectors/${encodeURIComponent(collectorId)}/refactor_template/progress`,
+        {},
+        signal
+      );
+      if (response.status === 202) {
+        await response.text();
+        throwIfAborted(signal);
+        await this.sleep(signal);
+        continue;
+      }
+      const payload: unknown = await response.json();
+      throwIfAborted(signal);
+      const parsed = healProgressSchema.parse(payload);
+      const status = normalizedStatus(parsed.status);
+      if (isReviewStatus(status) || isSuccessfulHealStatus(status)) return parsed;
+      if (isFailedHealStatus(status)) {
+        throw new BrightDataProtocolError(`Bright Data self-healing failed with status ${status}`);
+      }
+      await this.sleep(signal);
+    }
+  }
+
+  private async pollCollection(
+    collectionId: string,
+    signal: AbortSignal
+  ): Promise<{ records: unknown[]; rawBody: string }> {
     while (true) {
       const datasetUrl = new URL("/dca/dataset", this.apiBaseUrl);
       datasetUrl.searchParams.set("id", collectionId);
@@ -258,18 +394,18 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
         continue;
       }
       const records = parseDatasetRecords(body);
-      if (response.status === 200 && records) return records;
+      if (response.status === 200 && records) return { records, rawBody: body };
       await this.sleep(signal);
     }
   }
 
-  private sleep(signal: AbortSignal): Promise<void> {
+  private sleep(signal: AbortSignal, delayMs = this.pollIntervalMs): Promise<void> {
     return new Promise((resolve, reject) => {
       throwIfAborted(signal);
       const timer = setTimeout(() => {
         signal.removeEventListener("abort", onAbort);
         resolve();
-      }, this.pollIntervalMs);
+      }, delayMs);
       const onAbort = () => {
         clearTimeout(timer);
         reject(abortReason(signal));
@@ -297,17 +433,7 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
   }
 
   private extractDiff(payload: unknown): HealResult["diff"] {
-    if (typeof payload !== "object" || payload === null) return [];
-    const candidate = (payload as Record<string, unknown>).diff;
-    if (!Array.isArray(candidate)) return [];
-    return candidate.flatMap((entry) => {
-      if (typeof entry !== "object" || entry === null) return [];
-      const value = entry as Record<string, unknown>;
-      return typeof value.field === "string" &&
-        typeof value.before === "string" &&
-        typeof value.after === "string"
-        ? [{ field: value.field, before: value.before, after: value.after }]
-        : [];
-    });
+    const parsed = healProgressSchema.parse(payload);
+    return parsed.diff ? parsed.diff.map((entry) => ({ ...entry })) : [];
   }
 }
