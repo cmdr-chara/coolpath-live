@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { CoolPathRepository } from "@coolpath/db";
+import { isWithinTtl, transitionSourceState } from "@coolpath/domain";
 import {
   BrightDataScraperStudioClient,
   MockScraperStudioClient,
@@ -148,7 +149,7 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
         .then(() => ingestion.runSource(initialSourceId))
         .then(() => undefined)
         .catch((error: unknown) => {
-          reconcileBackgroundFailure(app, repository, initialSourceId, error);
+          reconcileBackgroundFailure(app, repository, initialSourceId, error, now);
         });
     }
 
@@ -167,14 +168,23 @@ function reconcileBackgroundFailure(
   app: FastifyInstance,
   repository: CoolPathRepository,
   sourceId: string,
-  error: unknown
+  error: unknown,
+  now: () => Date
 ): void {
   try {
     const source = repository.getSource(sourceId);
     if (source?.currentState === "CHECKING") {
+      const published = repository.getPublishedSnapshot(sourceId);
       repository.setSourceState(
         sourceId,
-        repository.getPublishedSnapshot(sourceId) ? "DEGRADED" : "BROKEN"
+        transitionSourceState(source.currentState, {
+          type: "RUN_FAILED",
+          hasTrustedSnapshot: published !== null,
+          withinTtl: published
+            ? isWithinTtl(published.observedAt, source.freshnessTtlMinutes, now())
+            : false,
+          inconclusive: true
+        })
       );
     }
   } catch (stateError) {
