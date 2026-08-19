@@ -2,131 +2,105 @@
 
 Date: 2026-08-19
 
-This pass hardens CoolPath Live for **Best Clean Code** review without intentionally changing the product's public behavior, trusted-publication rules, source-normalization semantics, or deterministic demo flow. The work focuses on making architectural boundaries executable, removing duplicated policy, and turning previously compile-time-only assumptions into runtime contracts.
+This pass hardens CoolPath Live for **Best Clean Code** review without intentionally changing the product's trusted-publication rule or mock/real boundary. It concentrates domain decisions at explicit runtime boundaries and makes the Scraper Studio failure/recovery path fail closed.
 
 No real Bright Data collection was triggered during this hardening pass.
 
 ## Architecture boundaries
 
-The domain package now separates two different concerns explicitly:
+The domain package separates browser-safe contracts from server-side policy and hashing. Public API payloads are runtime-validated before leaving Fastify and again before the browser accepts them. The browser consumes the shared contract instead of maintaining a parallel hand-written DTO graph.
 
-- `quality-contracts.ts` contains browser-safe quality vocabulary, DTO-facing types, and Zod schemas;
-- `quality.ts` contains server-side quality policy and hashing, including the Node `crypto` dependency;
-- `api-contracts.ts` defines the executable public API read-model contracts;
-- `@coolpath/domain/api-contracts` exposes a browser-safe package subpath so the web application does not pull server-only dependencies into its bundle.
+## Scraper Studio lifecycle hardening
 
-This makes the browser/server boundary visible in the module graph rather than relying on bundler behavior or developer convention.
+The real Bright Data adapter now models the provider workflow as asynchronous rather than treating an approval response as immediate collector readiness.
 
-## One executable contract across the network
+The implemented sequence is:
 
-Public read models are no longer trusted through TypeScript casts alone.
+`trigger → poll structured dataset → normalize → validate → publish/quarantine`
 
-- The API validates city summaries, city detail payloads, and incident read models before they leave the server.
-- The web client parses successful JSON responses as `unknown` and validates the same shared contract before using the payload.
-- Frontend DTO types are inferred from those shared domain contracts instead of being maintained as a parallel hand-written object graph.
-- Structured local timestamps use a shared `ZonedTimestamp` runtime schema, keeping timezone metadata and TypeScript types aligned with the actual payload.
+and for healing:
 
-The contract hardening exposed and fixed a pre-existing mismatch where local timestamp fields had been typed as strings even though the API returns structured timezone objects.
+`incident → field-specific prompt → repair preview → human approve/reject → provider completion → same-collector rerun → full validation → recovery publication`
 
-## Authoritative source-state policy
+Important guarantees:
 
-`transitionSourceState()` is now the policy authority for operational state changes.
+- mutating/paid POST calls are not blindly retried;
+- safe provider polling reads use bounded retry for transient HTTP failures;
+- approval waits for the provider healing job to become ready before rerun;
+- a second provider review gate remains `REVIEW_PENDING` instead of causing an automatic rerun;
+- rejection applies no repair and restores trusted-data degradation/staleness semantics;
+- authentication, forbidden access, missing collector, invalid provider input, rate-limit, timeout and DNS failures remain distinct evidence;
+- source-row schema rejection is a hard publication failure rather than silent partial publication;
+- the dataset evidence hash is derived from the actual returned dataset body.
 
-The application and ingestion service derive state through domain events for:
+## Canonical source policy
 
-- check start;
-- successful publication and recovery;
-- failed or inconclusive runs;
-- freshness expiry;
-- healing requests;
-- healing preview readiness;
-- healing rejection.
+PA211 production identity and trust policy are now defined once in `packages/source-adapters/src/pa211-source.ts` and reused by:
 
-The repository persists the resulting state rather than independently deciding business-state transitions. This keeps transition policy in one domain function and makes the lifecycle easier to reason about and test.
+- API seed configuration;
+- PA211 origin/source normalization;
+- source-manifest metadata;
+- the live smoke command.
 
-## Transactional publication without duplicated mechanics
+That removes manual duplication of source ID, city identity, canonical URL, allowed origin, TTL and policy version across runtime boundaries.
 
-Snapshot publication still preserves the original atomic safety guarantees, but duplicated persistence mechanics were consolidated into one private publication primitive.
+## Source-state ownership
 
-Both publication entry points now reuse the same transaction for:
+`transitionSourceState()` rejects illegal event/state combinations for normal operations, healing, review and publication. `CHECKING` accepts an idempotent `CHECK_STARTED` only to permit a new single-writer operation to recover from a persisted interrupted check; same-process overlap is rejected by `SourceOperationCoordinator` before the domain transition is reached.
 
-- validating candidate ownership/status;
-- superseding the previous trusted snapshot;
-- promoting the candidate;
-- advancing the trusted-snapshot pointer;
-- applying the already-derived source state when appropriate;
-- resolving the current incident;
-- writing the recovery/publication timeline proof.
+Freshness reconciliation does not overwrite `CHECKING`, `HEALING` or `REVIEW_PENDING`, and startup explicitly reconciles interrupted persisted operations. Interrupted checks/healing cannot promote a candidate or replace the trusted pointer.
 
-This removes the former duplication between ordinary snapshot promotion and the full publication workflow without weakening the trusted-publication boundary.
+## Runtime topology
 
-## Runtime validation at persistence boundaries
+The supported submission topology is explicit: one API writer process per SQLite database. The process-local source coordinator is not described as a distributed lock. See `docs/runtime-constraints.md`.
 
-Structured JSON read from SQLite is no longer recovered primarily through unchecked `JSON.parse(...) as Type` assertions.
+## Transactional publication
 
-Repository mapping now validates key stored values with domain schemas, including:
+`CoolPathRepository` keeps the final trust switch atomic. Candidate validation happens before publication; publication then performs trusted-snapshot supersession, candidate promotion, trusted pointer movement, source-state publication, incident resolution and publication/recovery timeline evidence in one SQLite transaction.
 
-- source allowed origins, mode, and state;
-- run disposition, reason codes, and validation summary;
-- snapshot status and cooling-site records;
-- incident reason codes, healing state, and healing diff.
+Quarantined candidates remain outside the trusted pointer.
 
-Corrupt or incompatible persisted representations therefore fail at the repository boundary rather than silently entering the application as trusted typed values.
+## Runtime validation at persistence and network boundaries
 
-## Explicit quality policy
+Structured SQLite JSON is parsed as unknown and validated with domain schemas for source origins/state/mode, run disposition/reason codes/validation summaries, snapshot status/sites and incident healing data.
 
-Previously anonymous quality thresholds are now named policy constants:
+The public API uses shared executable Zod read-model contracts, and the browser parses successful responses through those same contracts.
 
-- minimum retained yield ratio;
-- maximum expected yield ratio;
-- optional-coverage drop threshold;
-- minimum retained identity ratio;
-- suspicious-content-change ratio.
+## Human-review evidence
 
-The numerical policy is unchanged; the intent is now readable directly from the implementation.
+The deterministic presenter now exposes both decisions:
 
-## Frontend preservation
+- **Approve and re-run** — apply the mock repair, rerun and require full validation before recovery;
+- **Reject repair** — apply no selector change and keep the trusted snapshot protected.
 
-The existing Civic Clarity frontend separation remains intact:
+The mock remains explicitly labelled as a deterministic fixture. It demonstrates CoolPath's publication boundary, not a fabricated live Bright Data repair.
 
-- `App.tsx` remains the composition/orchestration layer;
-- public and technical views remain responsibility-based components;
-- demo mutations continue to reload authoritative backend state rather than fabricate lifecycle state in React;
-- deterministic presenter controls remain mock-only;
-- public search continues to filter only the already-published trusted snapshot.
+## Coding-agent boundary
 
-The new network contracts strengthen this boundary without changing the visible UI hierarchy.
+`CODEX.md` defines the safe operational contract for a coding agent working with the pinned Scraper Studio collector. `docs/evidence/coding-agent-scraper-studio.md` records concrete repository-side Scraper Studio workflow work while explicitly separating that evidence from a live provider run.
 
-## CI as one canonical verification gate
+## CI
 
-The verification workflow no longer runs lint, format, typecheck, tests, and build individually and then repeats them through `pnpm verify`.
-
-The `verify` job now uses `pnpm verify` as the single canonical application gate, followed by repository diff checks. Playwright remains an independent end-to-end gate, and the aggregate commit status requires both jobs to succeed.
-
-## Final verification evidence
-
-The hardened code candidate at `f8712c9e9e185e9caecfb32eb2d8f8e02313f719` passed the complete pull-request verification suite against `main`:
+The canonical verification gate remains:
 
 - ESLint;
 - Prettier;
-- strict TypeScript/typecheck across the workspace;
-- **80/80 unit and integration tests across 10 test files**;
+- strict TypeScript/typecheck;
+- unit/integration tests;
 - production builds, including the browser bundle;
 - `git diff --check`;
 - `git diff --check origin/main...HEAD`;
-- **Playwright 10/10** across the configured end-to-end projects;
-- aggregate `CoolPath / full verification` status successful.
+- independent Playwright desktop/mobile E2E;
+- aggregate `CoolPath / full verification` status.
 
-The final documentation commit is also required to pass the same CI gate before the pull request is considered review-ready.
+The final test count/status for the current HEAD must come from the final CI run; this document does not reuse an older green count as evidence for a newer commit.
 
-## Preserved safety and product boundaries
+## Preserved safety boundaries
 
-- No real Bright Data collection was triggered by this pass.
-- No source collector configuration was mutated as part of this work.
-- Quarantined candidates still cannot replace the last trusted published snapshot.
-- Publication remains transactional.
-- Healing still requires explicit review/approval before a repaired collector can prove itself through a fresh validated run.
-- Freshness reconciliation retains historical evidence instead of presenting expired data as newly verified.
-- The existing public, technical, mock, and real-mode product boundaries remain intact.
-
-The result is intentionally not a maximal file-splitting exercise. The hardening concentrates decision-making at the correct boundaries while preserving the tested behavior of the working hackathon system.
+- No real Bright Data credentials are committed or logged.
+- No real provider call is made by deterministic CI.
+- No source collector was recreated or replaced by this pass.
+- Quarantined output cannot replace the trusted snapshot.
+- Healing remains human-gated.
+- Recovery publication requires a fresh proving run.
+- The final real Bright Data verification remains a separate evidence gate and is not implied by green deterministic tests.
