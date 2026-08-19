@@ -580,7 +580,11 @@ export class CoolPathRepository {
           id: randomUUID(),
           sourceId: input.sourceId,
           occurredAt: input.promotedAt,
-          kind: recoveredByHealing ? "recovered" : ordinaryRecovery ? "recovered_check" : "published",
+          kind: recoveredByHealing
+            ? "recovered"
+            : ordinaryRecovery
+              ? "recovered_check"
+              : "published",
           title: recoveredByHealing
             ? "Recovered snapshot published"
             : ordinaryRecovery
