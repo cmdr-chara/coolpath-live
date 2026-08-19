@@ -2,7 +2,7 @@ import {
   apiCityResponseEnvelopeSchema,
   apiCitySummaryListEnvelopeSchema,
   apiUnknownEnvelopeSchema
-} from "@coolpath/domain";
+} from "@coolpath/domain/api-contracts";
 import type { CityResponse, CitySummary } from "./types";
 
 const baseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "");
