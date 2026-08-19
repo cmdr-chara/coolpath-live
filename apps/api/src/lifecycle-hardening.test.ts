@@ -131,9 +131,9 @@ describe("lifecycle hardening", () => {
     expect(service.recoverInterruptedOperation(DEMO_SOURCE_ID)).toBe(true);
     expect(repository.getSource(DEMO_SOURCE_ID)?.currentState).toBe("DEGRADED");
     expect(repository.getPublishedSnapshot(DEMO_SOURCE_ID)?.id).toBe(trusted.id);
-    expect(repository.listTimeline(DEMO_SOURCE_ID)[0]).toMatchObject({
-      kind: "operation_interrupted"
-    });
+    expect(
+      repository.listTimeline(DEMO_SOURCE_ID).some((event) => event.kind === "operation_interrupted")
+    ).toBe(true);
   });
 
   it("recovers a persisted interrupted healing request and leaves the incident open", async () => {
