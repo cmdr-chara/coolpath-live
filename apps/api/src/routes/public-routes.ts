@@ -100,9 +100,9 @@ export function registerPublicRoutes(
       noStore(reply);
       return reply.status(404).send(envelope(null, now));
     }
-    const incident = apiIncidentReadModelSchema.nullable().parse(
-      repository.getCurrentIncident(sourceId)
-    );
+    const incident = apiIncidentReadModelSchema
+      .nullable()
+      .parse(repository.getCurrentIncident(sourceId));
     return cacheableEnvelope(request, reply, incident, now);
   });
 }
