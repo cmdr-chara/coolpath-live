@@ -56,9 +56,11 @@ export default function App() {
       await refresh();
       setActionFeedback(successMessages[next]);
     },
-    onError: () => {
+    onError: (_error, next) => {
       setActionFeedback(
-        "The selected demo action failed. The existing public snapshot was not replaced."
+        next === "reset"
+          ? "The demo reset failed before a replacement baseline was published. Retry the reset before continuing."
+          : "The selected demo action failed. The existing public snapshot was not replaced."
       );
     }
   });
