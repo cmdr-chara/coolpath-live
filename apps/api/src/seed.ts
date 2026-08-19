@@ -49,7 +49,8 @@ export function seedPrimarySourceConfiguration(
     freshnessTtlMinutes: PA211_SOURCE.freshnessTtlMinutes,
     policyVersion: PA211_SOURCE.policyVersion,
     enabled: true,
-    currentState: repository.getSource(PA211_SOURCE.sourceId)?.currentState ?? "UNINITIALIZED",
+    currentState:
+      repository.getSource(PA211_SOURCE.sourceId)?.currentState ?? "UNINITIALIZED",
     mode: "real"
   });
 }
