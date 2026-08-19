@@ -322,7 +322,9 @@ describe("snapshot publication", () => {
 
     expect(second.id).toBe(first.id);
     expect(second.severity).toBe("critical");
-    expect(second.reasonCodes).toEqual(expect.arrayContaining(["INVALID_SCHEMA", "ZERO_ROWS"]));
+    expect(second.reasonCodes).toEqual(
+      expect.arrayContaining(["INVALID_SCHEMA", "ZERO_ROWS"])
+    );
   });
 
   it("preserves state on reseed and hides disabled sources", () => {
