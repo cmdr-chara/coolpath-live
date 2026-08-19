@@ -54,6 +54,8 @@ function failedState(context: TrustedSnapshotContext): SourceState {
 export function transitionSourceState(state: SourceState, event: SourceEvent): SourceState {
   switch (event.type) {
     case "CHECK_STARTED":
+      // CHECKING is intentionally idempotent for retrying a persisted interrupted check.
+      // Same-process overlapping operations are rejected by SourceOperationCoordinator first.
       requireState(state, event.type, [
         "UNINITIALIZED",
         "CHECKING",
