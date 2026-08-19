@@ -30,6 +30,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
+      - name: Show formatter diff on verification failure
+        if: failure()
+        run: |
+          pnpm exec prettier --write apps/api/src/routes/public-routes.ts apps/web/src/api.ts packages/db/src/repository.ts
+          git diff -- apps/api/src/routes/public-routes.ts apps/web/src/api.ts packages/db/src/repository.ts
       - run: git diff --check
       - run: git diff --check origin/main...HEAD
 
