@@ -13,14 +13,16 @@ const pendingMessages: Record<DemoAction, string> = {
   reset: "Resetting the source and publishing the healthy baseline…",
   drift: "Running the drifted collector and validating its candidate…",
   heal: "Preparing the field-specific repair preview…",
-  approve: "Applying the approved selectors, re-running and validating the collector…"
+  approve: "Applying the approved selectors, re-running and validating the collector…",
+  reject: "Rejecting the repair preview without changing the collector…"
 };
 
 const successMessages: Record<DemoAction, string> = {
   reset: "Healthy baseline published. The public snapshot passed the complete contract.",
   drift: "Drift detected. The candidate is quarantined and the last trusted report remains public.",
   heal: "Repair preview prepared. Manual approval is required before any selector change is used.",
-  approve: "Repair approved. The re-run passed validation and the recovered snapshot was published."
+  approve: "Repair approved. The re-run passed validation and the recovered snapshot was published.",
+  reject: "Repair rejected. No selector change was applied and the trusted report remains protected."
 };
 
 function readView(): AppView {
@@ -47,6 +49,7 @@ export default function App() {
   const action = useMutation({
     mutationFn: async (next: DemoAction) => {
       if (next === "approve") return decideHeal(true);
+      if (next === "reject") return decideHeal(false);
       return runDemoAction(next);
     },
     onMutate: (next) => {
