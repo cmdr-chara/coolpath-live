@@ -104,6 +104,7 @@ export class IngestionService {
     snapshot: StoredSnapshot;
   }> {
     const source = this.lifecycle.requireSource(sourceId);
+    const baseline = this.repository.getPublishedSnapshot(sourceId);
     const startedAt = this.nowIso();
     this.repository.setSourceState(
       sourceId,
@@ -142,9 +143,6 @@ export class IngestionService {
     }
 
     const normalization = this.normalize(result.records, result.fetchedAt, sourceId);
-    const baseline = source.publishedSnapshotId
-      ? this.repository.getSnapshot(source.publishedSnapshotId)
-      : null;
     const baselineRun = baseline ? this.repository.getRun(baseline.runId) : null;
     let validation: EvaluatedValidationSummary = evaluateCandidate({
       records: normalization.records,
