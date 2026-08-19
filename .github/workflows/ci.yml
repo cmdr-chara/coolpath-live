@@ -29,6 +29,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Show App formatter correction
+        run: |
+          pnpm exec prettier --write apps/web/src/App.tsx
+          git --no-pager diff -- apps/web/src/App.tsx
+          exit 1
       - run: pnpm verify
       - run: git diff --check
       - run: git diff --check origin/main...HEAD
