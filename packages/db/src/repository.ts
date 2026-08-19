@@ -151,6 +151,11 @@ function instantMs(value: string, label: string): number {
   return parsed;
 }
 
+function sqliteErrorCode(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || !("code" in error)) return null;
+  return typeof error.code === "string" ? error.code : null;
+}
+
 export class CoolPathRepository {
   private readonly sqlite: Database.Database;
   private readonly db;
@@ -467,6 +472,7 @@ export class CoolPathRepository {
         })
         .run();
     } catch (error) {
+      if (sqliteErrorCode(error) !== "SQLITE_CONSTRAINT_UNIQUE") throw error;
       const concurrent = this.getCurrentIncident(input.sourceId);
       if (!concurrent) throw error;
       return this.mergeIncident(concurrent, input);
