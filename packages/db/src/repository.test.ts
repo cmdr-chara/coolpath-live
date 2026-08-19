@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { CoolingSite, ValidationSummary } from "@coolpath/domain";
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CoolPathRepository } from "./repository.js";
+import { CoolPathRepository, PublicationConflictError } from "./repository.js";
 
 const site: CoolingSite = {
   id: "test:one",
@@ -63,16 +63,18 @@ function seed(repository: CoolPathRepository): void {
 function recordCandidate(
   repository: CoolPathRepository,
   runId: string,
-  status: "candidate" | "quarantined" = "candidate"
+  status: "candidate" | "quarantined" = "candidate",
+  startedAt = site.observedAt,
+  observedAt = startedAt
 ) {
   const validation =
     status === "candidate" ? summary : { ...summary, disposition: "quarantined" as const };
   repository.recordRun({
     id: runId,
     sourceId: "test-source",
-    startedAt: site.observedAt,
-    fetchedAt: site.observedAt,
-    completedAt: site.observedAt,
+    startedAt,
+    fetchedAt: observedAt,
+    completedAt: observedAt,
     outcome: validation.disposition,
     collectorId: "c_test",
     collectorVersion: "1",
@@ -85,10 +87,27 @@ function recordCandidate(
   return repository.createSnapshot({
     sourceId: "test-source",
     runId,
-    observedAt: site.observedAt,
+    observedAt,
     contentHash: `${runId}-hash`,
     status,
-    sites: [site]
+    sites: [{ ...site, observedAt }]
+  });
+}
+
+function publish(
+  repository: CoolPathRepository,
+  runId: string,
+  snapshotId: string,
+  promotedAt: string
+) {
+  return repository.publishSnapshot({
+    sourceId: "test-source",
+    snapshotId,
+    runId,
+    promotedAt,
+    sourceState: "HEALTHY",
+    recoveredByHealing: false,
+    recordCount: 1
   });
 }
 
@@ -103,14 +122,17 @@ describe("snapshot publication", () => {
   afterEach(() => repository.close());
 
   it("publishes candidates transactionally and supersedes the prior snapshot", () => {
-    for (const runId of ["run-1", "run-2"]) {
-      const snapshot = recordCandidate(repository, runId);
-      repository.promoteSnapshot("test-source", snapshot.id, site.observedAt);
-    }
+    const firstObservedAt = "2026-08-17T12:00:00.000Z";
+    const secondObservedAt = "2026-08-17T12:01:00.000Z";
+    const first = recordCandidate(repository, "run-1", "candidate", firstObservedAt);
+    publish(repository, "run-1", first.id, firstObservedAt);
+    const second = recordCandidate(repository, "run-2", "candidate", secondObservedAt);
+    publish(repository, "run-2", second.id, secondObservedAt);
 
     const current = repository.getPublishedSnapshot("test-source");
     expect(current?.runId).toBe("run-2");
     expect(current?.status).toBe("published");
+    expect(repository.getSnapshot(first.id)?.status).toBe("superseded");
   });
 
   it("does not expose quarantined candidates as published", () => {
@@ -118,16 +140,64 @@ describe("snapshot publication", () => {
     expect(repository.getPublishedSnapshot("test-source")).toBeNull();
   });
 
-  it("preserves the current pointer when an invalid promotion is rejected", () => {
+  it("preserves the current pointer when an invalid publication is rejected", () => {
     const trusted = recordCandidate(repository, "trusted-run");
-    repository.promoteSnapshot("test-source", trusted.id, site.observedAt);
+    publish(repository, "trusted-run", trusted.id, site.observedAt);
     const quarantined = recordCandidate(repository, "quarantined-run", "quarantined");
 
     expect(() =>
-      repository.promoteSnapshot("test-source", quarantined.id, site.observedAt)
+      publish(repository, "quarantined-run", quarantined.id, "2026-08-17T12:01:00.000Z")
     ).toThrow("Only a candidate snapshot");
     expect(repository.getPublishedSnapshot("test-source")?.id).toBe(trusted.id);
     expect(repository.getSnapshot(trusted.id)?.status).toBe("published");
+  });
+
+  it("prevents an older run from replacing a newer trusted publication", () => {
+    const older = recordCandidate(
+      repository,
+      "older-run",
+      "candidate",
+      "2026-08-17T12:00:00.000Z",
+      "2026-08-17T12:02:00.000Z"
+    );
+    const newer = recordCandidate(
+      repository,
+      "newer-run",
+      "candidate",
+      "2026-08-17T12:05:00.000Z",
+      "2026-08-17T12:06:00.000Z"
+    );
+    publish(repository, "newer-run", newer.id, "2026-08-17T12:07:00.000Z");
+
+    expect(() =>
+      publish(repository, "older-run", older.id, "2026-08-17T12:08:00.000Z")
+    ).toThrow(PublicationConflictError);
+    expect(repository.getPublishedSnapshot("test-source")?.id).toBe(newer.id);
+    expect(repository.getSnapshot(newer.id)?.status).toBe("published");
+    expect(repository.getSnapshot(older.id)?.status).toBe("candidate");
+  });
+
+  it("prevents a newer run from regressing the public observation timestamp", () => {
+    const current = recordCandidate(
+      repository,
+      "current-run",
+      "candidate",
+      "2026-08-17T12:00:00.000Z",
+      "2026-08-17T12:10:00.000Z"
+    );
+    publish(repository, "current-run", current.id, "2026-08-17T12:11:00.000Z");
+    const regressive = recordCandidate(
+      repository,
+      "regressive-run",
+      "candidate",
+      "2026-08-17T12:12:00.000Z",
+      "2026-08-17T12:09:00.000Z"
+    );
+
+    expect(() =>
+      publish(repository, "regressive-run", regressive.id, "2026-08-17T12:13:00.000Z")
+    ).toThrow(PublicationConflictError);
+    expect(repository.getPublishedSnapshot("test-source")?.id).toBe(current.id);
   });
 
   it("publishes, restores source health, resolves the incident and records proof atomically", () => {
@@ -141,7 +211,13 @@ describe("snapshot publication", () => {
       recoveredByHealing: false,
       recordCount: 1
     });
-    recordCandidate(repository, "drift-run", "quarantined");
+    recordCandidate(
+      repository,
+      "drift-run",
+      "quarantined",
+      "2026-08-17T12:05:00.000Z",
+      "2026-08-17T12:05:00.000Z"
+    );
     repository.openIncident({
       sourceId: "test-source",
       runId: "drift-run",
@@ -150,7 +226,13 @@ describe("snapshot publication", () => {
       openedAt: "2026-08-17T12:05:00.000Z"
     });
     repository.setSourceState("test-source", "DEGRADED");
-    const recovered = recordCandidate(repository, "ordinary-recovery-run");
+    const recovered = recordCandidate(
+      repository,
+      "ordinary-recovery-run",
+      "candidate",
+      "2026-08-17T12:10:00.000Z",
+      "2026-08-17T12:10:00.000Z"
+    );
 
     const result = repository.publishSnapshot({
       sourceId: "test-source",
@@ -221,6 +303,28 @@ describe("snapshot publication", () => {
     ).toThrow("Snapshot run must belong to the same source");
   });
 
+  it("merges repeated incident evidence instead of creating a second open incident", () => {
+    recordCandidate(repository, "failed-run", "quarantined");
+    const first = repository.openIncident({
+      sourceId: "test-source",
+      runId: "failed-run",
+      severity: "warning",
+      reasonCodes: ["INVALID_SCHEMA"],
+      openedAt: "2026-08-17T12:01:00.000Z"
+    });
+    const second = repository.openIncident({
+      sourceId: "test-source",
+      runId: "failed-run",
+      severity: "critical",
+      reasonCodes: ["ZERO_ROWS"],
+      openedAt: "2026-08-17T12:02:00.000Z"
+    });
+
+    expect(second.id).toBe(first.id);
+    expect(second.severity).toBe("critical");
+    expect(second.reasonCodes).toEqual(expect.arrayContaining(["INVALID_SCHEMA", "ZERO_ROWS"]));
+  });
+
   it("preserves state on reseed and hides disabled sources", () => {
     repository.setSourceState("test-source", "HEALTHY");
     const source = repository.getSource("test-source");
@@ -252,8 +356,70 @@ describe("snapshot publication", () => {
   });
 });
 
+describe("persistence failure boundaries", () => {
+  const directories: string[] = [];
+
+  afterEach(() => {
+    for (const directory of directories.splice(0))
+      rmSync(directory, { recursive: true, force: true });
+  });
+
+  it("rolls back the entire reset if one table deletion fails", () => {
+    const directory = mkdtempSync(join(tmpdir(), "coolpath-reset-"));
+    directories.push(directory);
+    const databasePath = join(directory, "coolpath.db");
+    const repository = new CoolPathRepository(databasePath);
+    seed(repository);
+    const candidate = recordCandidate(repository, "reset-run");
+    publish(repository, "reset-run", candidate.id, site.observedAt);
+    repository.addTimelineEvent({
+      sourceId: "test-source",
+      occurredAt: site.observedAt,
+      kind: "test",
+      title: "Before reset",
+      detail: "Must survive a failed reset transaction",
+      tone: "neutral"
+    });
+
+    const raw = new Database(databasePath);
+    raw.exec(`
+      CREATE TRIGGER fail_reset_before_run_delete
+      BEFORE DELETE ON ingest_runs
+      BEGIN
+        SELECT RAISE(ABORT, 'reset blocked for test');
+      END;
+    `);
+    raw.close();
+
+    expect(() => repository.reset()).toThrow("reset blocked for test");
+    expect(repository.getSource("test-source")).not.toBeNull();
+    expect(repository.getPublishedSnapshot("test-source")?.id).toBe(candidate.id);
+    expect(repository.listTimeline("test-source")).toHaveLength(2);
+    repository.close();
+  });
+
+  it("fails closed when persisted JSON is corrupt", () => {
+    const directory = mkdtempSync(join(tmpdir(), "coolpath-corrupt-"));
+    directories.push(directory);
+    const databasePath = join(directory, "coolpath.db");
+    const repository = new CoolPathRepository(databasePath);
+    seed(repository);
+
+    const raw = new Database(databasePath);
+    raw.prepare("UPDATE sources SET allowed_origins_json = ? WHERE id = ?").run(
+      "not-json",
+      "test-source"
+    );
+    raw.close();
+
+    expect(() => repository.getSource("test-source")).toThrow();
+    repository.close();
+  });
+});
+
 describe("migration discipline", () => {
   const directories: string[] = [];
+  const expectedMigrations = ["0000_initial.sql", "0001_open_incident_invariant.sql"];
 
   afterEach(() => {
     for (const directory of directories.splice(0))
@@ -266,10 +432,10 @@ describe("migration discipline", () => {
     const databasePath = join(directory, "coolpath.db");
 
     const first = new CoolPathRepository(databasePath);
-    expect(first.getAppliedMigrations()).toEqual(["0000_initial.sql"]);
+    expect(first.getAppliedMigrations()).toEqual(expectedMigrations);
     first.close();
     const second = new CoolPathRepository(databasePath);
-    expect(second.getAppliedMigrations()).toEqual(["0000_initial.sql"]);
+    expect(second.getAppliedMigrations()).toEqual(expectedMigrations);
     expect(second.checkHealth()).toBe(true);
     second.close();
   });
@@ -310,7 +476,45 @@ describe("migration discipline", () => {
       id: "legacy",
       displayName: "Legacy City"
     });
-    expect(repository.getAppliedMigrations()).toEqual(["0000_initial.sql"]);
+    expect(repository.getAppliedMigrations()).toEqual(expectedMigrations);
     repository.close();
+  });
+
+  it("enforces one unresolved incident per source at the SQLite boundary", () => {
+    const directory = mkdtempSync(join(tmpdir(), "coolpath-incident-"));
+    directories.push(directory);
+    const databasePath = join(directory, "coolpath.db");
+    const repository = new CoolPathRepository(databasePath);
+    seed(repository);
+    recordCandidate(repository, "incident-run", "quarantined");
+    repository.openIncident({
+      sourceId: "test-source",
+      runId: "incident-run",
+      severity: "critical",
+      reasonCodes: ["INVALID_SCHEMA"],
+      openedAt: site.observedAt
+    });
+    repository.close();
+
+    const raw = new Database(databasePath);
+    expect(() =>
+      raw
+        .prepare(
+          `INSERT INTO incidents (
+            id, source_id, run_id, severity, reason_codes_json, opened_at, heal_state,
+            heal_job_id, heal_prompt, heal_diff_json, resolved_by_run_id, resolved_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, '[]', NULL, NULL)`
+        )
+        .run(
+          "second-open-incident",
+          "test-source",
+          "incident-run",
+          "warning",
+          "[]",
+          "2026-08-17T12:01:00.000Z",
+          "not_requested"
+        )
+    ).toThrow();
+    raw.close();
   });
 });
