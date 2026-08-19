@@ -60,7 +60,7 @@ export function registerPublicRoutes(
       return reply.status(404).send(envelope(null, now));
     }
 
-    const data = apiCityResponseSchema.parse({
+    const candidate = {
       city: {
         id: city.id,
         slug: city.slug,
@@ -90,8 +90,13 @@ export function registerPublicRoutes(
       latestRun: repository.getLatestRun(city.source.id),
       incident: repository.getCurrentIncident(city.source.id),
       timeline: repository.listTimeline(city.source.id, 50)
-    });
-    return cacheableEnvelope(request, reply, data, now);
+    };
+    const parsed = apiCityResponseSchema.safeParse(candidate);
+    if (!parsed.success) {
+      console.error("CITY_RESPONSE_CONTRACT_MISMATCH", parsed.error.issues);
+      throw parsed.error;
+    }
+    return cacheableEnvelope(request, reply, parsed.data, now);
   });
 
   app.get("/api/incidents/:sourceId/current", async (request, reply) => {
