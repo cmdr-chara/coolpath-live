@@ -83,6 +83,21 @@ function isRetryableReadStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
+function collectorStatusFor(status: string): CollectorStatus["status"] {
+  if (isReviewStatus(status)) return "review_pending";
+  if (status.includes("heal") || status.includes("refactor")) return "healing";
+  if (
+    status.includes("run") ||
+    status.includes("queue") ||
+    status.includes("process") ||
+    status.includes("build")
+  ) {
+    return "running";
+  }
+  if (isFailedHealStatus(status)) return "failed";
+  return "ready";
+}
+
 export interface BrightDataClientOptions {
   apiToken: string;
   apiBaseUrl?: string;
@@ -176,22 +191,9 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       const payload: unknown = await response.json();
       throwIfAborted(signal);
       const parsed = jobEnvelopeSchema.passthrough().parse(payload);
-      const rawStatus = normalizedStatus(parsed.status);
-      const status: CollectorStatus["status"] = isReviewStatus(rawStatus)
-        ? "review_pending"
-        : rawStatus.includes("heal") || rawStatus.includes("refactor")
-          ? "healing"
-          : rawStatus.includes("run") ||
-              rawStatus.includes("queue") ||
-              rawStatus.includes("process") ||
-              rawStatus.includes("build")
-            ? "running"
-            : isFailedHealStatus(rawStatus)
-              ? "failed"
-              : "ready";
       return {
         collectorId,
-        status,
+        status: collectorStatusFor(normalizedStatus(parsed.status)),
         version: parsed.version === undefined ? "unknown" : String(parsed.version)
       };
     });

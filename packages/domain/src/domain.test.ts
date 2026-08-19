@@ -158,11 +158,43 @@ describe("state and freshness", () => {
     ).toBe("STALE");
   });
 
-  it("supports the healing review and recovered path", () => {
+  it("supports the explicit healing review, proving rerun and recovered path", () => {
     const healing = transitionSourceState("BROKEN", { type: "HEAL_REQUESTED" });
     const review = transitionSourceState(healing, { type: "HEAL_PREVIEW_READY" });
-    const recovered = transitionSourceState(review, { type: "RUN_PASSED", recovered: true });
-    expect([healing, review, recovered]).toEqual(["HEALING", "REVIEW_PENDING", "RECOVERED"]);
+    const checking = transitionSourceState(review, { type: "HEAL_RERUN_STARTED" });
+    const recovered = transitionSourceState(checking, { type: "RUN_PASSED", recovered: true });
+    expect([healing, review, checking, recovered]).toEqual([
+      "HEALING",
+      "REVIEW_PENDING",
+      "CHECKING",
+      "RECOVERED"
+    ]);
+  });
+
+  it("restores trusted-data semantics when a healing preview is rejected", () => {
+    expect(
+      transitionSourceState("REVIEW_PENDING", {
+        type: "HEAL_REJECTED",
+        hasTrustedSnapshot: true,
+        withinTtl: true
+      })
+    ).toBe("DEGRADED");
+    expect(
+      transitionSourceState("REVIEW_PENDING", {
+        type: "HEAL_REJECTED",
+        hasTrustedSnapshot: true,
+        withinTtl: false
+      })
+    ).toBe("STALE");
+  });
+
+  it("rejects lifecycle events that are illegal for the current state", () => {
+    expect(() => transitionSourceState("HEALTHY", { type: "HEAL_PREVIEW_READY" })).toThrow(
+      "cannot handle HEAL_PREVIEW_READY"
+    );
+    expect(() =>
+      transitionSourceState("REVIEW_PENDING", { type: "CHECK_STARTED" })
+    ).toThrow("cannot handle CHECK_STARTED");
   });
 });
 

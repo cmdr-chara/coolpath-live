@@ -80,7 +80,9 @@ export class IngestionService {
   }
 
   reconcileFreshness(sourceId: string): boolean {
+    if (this.coordinator.isActive(sourceId)) return false;
     const source = this.requireSource(sourceId);
+    if (["CHECKING", "HEALING", "REVIEW_PENDING"].includes(source.currentState)) return false;
     const snapshot = this.repository.getPublishedSnapshot(sourceId);
     const now = this.now();
     if (!snapshot || isWithinTtl(snapshot.observedAt, source.freshnessTtlMinutes, now)) {
@@ -95,6 +97,79 @@ export class IngestionService {
         hasTrustedSnapshot: true
       })
     });
+  }
+
+  recoverInterruptedOperation(sourceId: string): boolean {
+    if (this.coordinator.isActive(sourceId)) return false;
+    const source = this.requireSource(sourceId);
+    const occurredAt = this.nowIso();
+
+    if (source.currentState === "CHECKING") {
+      const context = this.trustedSnapshotContext(sourceId);
+      this.repository.setSourceState(
+        sourceId,
+        transitionSourceState("CHECKING", {
+          type: "RUN_FAILED",
+          ...context,
+          inconclusive: true
+        })
+      );
+      this.repository.addTimelineEvent({
+        sourceId,
+        occurredAt,
+        kind: "operation_interrupted",
+        title: "Interrupted source check recovered",
+        detail:
+          "The process restarted before the source check completed. No candidate was promoted and the trusted snapshot pointer was preserved.",
+        tone: "warning"
+      });
+      return true;
+    }
+
+    if (source.currentState === "HEALING") {
+      const incident = this.repository.getCurrentIncident(sourceId);
+      if (incident?.healState === "running") {
+        this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
+      }
+      this.repository.setSourceState(
+        sourceId,
+        this.healingFailureState(sourceId, "HEALING")
+      );
+      this.repository.addTimelineEvent({
+        sourceId,
+        occurredAt,
+        kind: "operation_interrupted",
+        title: "Interrupted healing request recovered",
+        detail:
+          "The process restarted before a reviewable repair was recorded. The incident remains open and no repair is trusted.",
+        tone: "warning"
+      });
+      return true;
+    }
+
+    if (source.currentState === "REVIEW_PENDING") {
+      const incident = this.repository.getCurrentIncident(sourceId);
+      if (incident?.healState === "review_pending" && incident.healJobId) return false;
+      if (incident) {
+        this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
+      }
+      this.repository.setSourceState(
+        sourceId,
+        this.healingFailureState(sourceId, "REVIEW_PENDING")
+      );
+      this.repository.addTimelineEvent({
+        sourceId,
+        occurredAt,
+        kind: "operation_interrupted",
+        title: "Invalid review state recovered",
+        detail:
+          "The persisted review state did not contain a resumable healing job. The incident remains open and the trusted snapshot pointer was preserved.",
+        tone: "warning"
+      });
+      return true;
+    }
+
+    return false;
   }
 
   requestHeal(sourceId: string): Promise<StoredIncident> {
@@ -119,7 +194,9 @@ export class IngestionService {
     const startedAt = this.nowIso();
     this.repository.setSourceState(
       sourceId,
-      transitionSourceState(source.currentState, { type: "CHECK_STARTED" })
+      transitionSourceState(source.currentState, {
+        type: recoveredByHealing ? "HEAL_RERUN_STARTED" : "CHECK_STARTED"
+      })
     );
     this.repository.addTimelineEvent({
       sourceId,
@@ -298,7 +375,7 @@ export class IngestionService {
       });
     } catch (error) {
       this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed", prompt });
-      this.repository.setSourceState(sourceId, source.currentState);
+      this.repository.setSourceState(sourceId, this.healingFailureState(sourceId, "HEALING"));
       this.repository.addTimelineEvent({
         sourceId,
         occurredAt: this.nowIso(),
@@ -344,8 +421,9 @@ export class IngestionService {
     if (!incident?.healJobId || incident.healState !== "review_pending") {
       throw new SourceOperationStateError("No healing preview is pending review");
     }
+    let decision;
     try {
-      await this.client.decideHeal({
+      decision = await this.client.decideHeal({
         collectorId: source.collectorId,
         jobId: incident.healJobId,
         approve,
@@ -353,7 +431,10 @@ export class IngestionService {
       });
     } catch (error) {
       this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
-      this.repository.setSourceState(sourceId, this.failedOperationState(sourceId));
+      this.repository.setSourceState(
+        sourceId,
+        this.healingFailureState(sourceId, "REVIEW_PENDING")
+      );
       this.repository.addTimelineEvent({
         sourceId,
         occurredAt: this.nowIso(),
@@ -365,10 +446,11 @@ export class IngestionService {
       throw error;
     }
     if (!approve) {
+      const context = this.trustedSnapshotContext(sourceId);
       this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "rejected" });
       this.repository.setSourceState(
         sourceId,
-        transitionSourceState(source.currentState, { type: "HEAL_REJECTED" })
+        transitionSourceState(source.currentState, { type: "HEAL_REJECTED", ...context })
       );
       this.repository.addTimelineEvent({
         sourceId,
@@ -379,6 +461,31 @@ export class IngestionService {
         tone: "critical"
       });
       return this.repository.getCurrentIncident(sourceId);
+    }
+    if (decision.status === "review_pending") {
+      const diff = decision.diff ?? [];
+      this.repository.updateIncidentHeal({
+        incidentId: incident.id,
+        healState: "review_pending",
+        diff
+      });
+      this.repository.addTimelineEvent({
+        sourceId,
+        occurredAt: this.nowIso(),
+        kind: "heal_preview",
+        title: "Additional healing review required",
+        detail: `${diff.length} additional selector changes require manual approval before any rerun.`,
+        tone: "warning"
+      });
+      return this.repository.getCurrentIncident(sourceId);
+    }
+    if (decision.status !== "ready") {
+      this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
+      this.repository.setSourceState(
+        sourceId,
+        this.healingFailureState(sourceId, "REVIEW_PENDING")
+      );
+      throw new Error("The approved Bright Data healing job did not become ready for rerun");
     }
     try {
       const rerun = await this.runSourceUnlocked(sourceId, true);
@@ -428,16 +535,27 @@ export class IngestionService {
     return source;
   }
 
-  private failedOperationState(sourceId: string): StoredSource["currentState"] {
+  private trustedSnapshotContext(sourceId: string): {
+    hasTrustedSnapshot: boolean;
+    withinTtl: boolean;
+  } {
     const source = this.requireSource(sourceId);
     const published = this.repository.getPublishedSnapshot(sourceId);
-    return transitionSourceState("CHECKING", {
-      type: "RUN_FAILED",
+    return {
       hasTrustedSnapshot: published !== null,
       withinTtl: published
         ? isWithinTtl(published.observedAt, source.freshnessTtlMinutes, this.now())
-        : false,
-      inconclusive: true
+        : false
+    };
+  }
+
+  private healingFailureState(
+    sourceId: string,
+    state: "HEALING" | "REVIEW_PENDING"
+  ): StoredSource["currentState"] {
+    return transitionSourceState(state, {
+      type: "HEAL_FAILED",
+      ...this.trustedSnapshotContext(sourceId)
     });
   }
 

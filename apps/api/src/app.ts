@@ -134,6 +134,7 @@ export async function buildApp(dependencies: AppDependencies = {}): Promise<Fast
       seedSourceConfiguration(repository);
     }
 
+    ingestion.recoverInterruptedOperation(initialSourceId);
     ingestion.reconcileFreshness(initialSourceId);
 
     if (config.COOLPATH_MODE === "mock" && !repository.getPublishedSnapshot(initialSourceId)) {
