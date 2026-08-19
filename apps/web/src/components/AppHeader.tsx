@@ -21,8 +21,8 @@ export function AppHeader({
             CP
           </span>
           <span>
-            <strong>CoolPath Live</strong>
-            <small>Evidence-first cooling directory</small>
+            <strong>CoolPath</strong>
+            <small>Live</small>
           </span>
         </a>
         <nav className="primary-nav" aria-label="Application views">

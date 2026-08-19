@@ -1,7 +1,7 @@
 import { ArrowSquareOut, Heartbeat } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
-import { decideHeal, getDirectory, getIncident, runDemoAction } from "./api";
+import { decideHeal, getDirectory, runDemoAction } from "./api";
 import { AppHeader, type AppView } from "./components/AppHeader";
 import { DirectoryView } from "./components/DirectoryView";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
@@ -39,17 +39,9 @@ export default function App() {
   const queryClient = useQueryClient();
 
   const cityQuery = useQuery({ queryKey: ["directory"], queryFn: getDirectory });
-  const incidentQuery = useQuery({
-    queryKey: ["incident", cityQuery.data?.source.id],
-    queryFn: () => getIncident(cityQuery.data?.source.id ?? ""),
-    enabled: Boolean(cityQuery.data?.source.id)
-  });
 
   const refresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["directory"] }),
-      queryClient.invalidateQueries({ queryKey: ["incident"] })
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ["directory"] });
   }, [queryClient]);
 
   const action = useMutation({
@@ -129,25 +121,17 @@ export default function App() {
       ) : (
         <TechnicalView
           city={city}
-          incident={incidentQuery.data ?? null}
+          incident={city.incident}
           controls={
-            <>
-              {incidentQuery.isError ? (
-                <p className="inline-error" role="alert">
-                  Incident details could not be loaded. Source status and the protected public
-                  snapshot remain visible.
-                </p>
-              ) : null}
-              {city.source.mode === "mock" ? (
-                <PresenterControls
-                  state={city.source.status}
-                  incident={incidentQuery.data ?? null}
-                  pending={action.isPending}
-                  feedback={actionFeedback}
-                  onAction={(next) => action.mutate(next)}
-                />
-              ) : null}
-            </>
+            city.source.mode === "mock" ? (
+              <PresenterControls
+                state={city.source.status}
+                incident={city.incident}
+                pending={action.isPending}
+                feedback={actionFeedback}
+                onAction={(next) => action.mutate(next)}
+              />
+            ) : null
           }
         />
       )}

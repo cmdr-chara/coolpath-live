@@ -1,4 +1,4 @@
-import type { ApiEnvelope, CityResponse, CitySummary, Incident } from "./types";
+import type { ApiEnvelope, CityResponse, CitySummary } from "./types";
 
 const baseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "");
 const configuredCitySlug = String(import.meta.env.VITE_CITY_SLUG ?? "").trim();
@@ -45,10 +45,6 @@ export async function getDirectory(): Promise<CityResponse> {
 
   if (!selected) throw new Error("No configured city is available.");
   return request<CityResponse>(`/api/cities/${encodeURIComponent(selected.slug)}`);
-}
-
-export function getIncident(sourceId: string): Promise<Incident | null> {
-  return request<Incident | null>(`/api/incidents/${encodeURIComponent(sourceId)}/current`);
 }
 
 export function runDemoAction(action: "reset" | "drift" | "heal"): Promise<unknown> {
