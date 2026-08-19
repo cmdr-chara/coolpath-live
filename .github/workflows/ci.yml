@@ -29,19 +29,6 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Show formatter corrections
-        run: |
-          pnpm exec prettier --write \
-            apps/api/src/ingestion-service.ts \
-            apps/api/src/lifecycle-hardening.test.ts \
-            packages/domain/src/domain.test.ts \
-            packages/source-adapters/src/bright-data-client.ts
-          git --no-pager diff -- \
-            apps/api/src/ingestion-service.ts \
-            apps/api/src/lifecycle-hardening.test.ts \
-            packages/domain/src/domain.test.ts \
-            packages/source-adapters/src/bright-data-client.ts
-          exit 1
       - run: pnpm verify
       - run: git diff --check
       - run: git diff --check origin/main...HEAD

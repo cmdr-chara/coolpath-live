@@ -71,7 +71,9 @@ class MultiApprovalClient extends MockScraperStudioClient {
     return super.runCollector(input);
   }
 
-  override decideHeal(input: Parameters<MockScraperStudioClient["decideHeal"]>[0]): Promise<CollectorStatus> {
+  override decideHeal(
+    input: Parameters<MockScraperStudioClient["decideHeal"]>[0]
+  ): Promise<CollectorStatus> {
     return Promise.resolve({
       collectorId: input.collectorId,
       status: "review_pending",
@@ -166,9 +168,7 @@ describe("lifecycle hardening", () => {
     expect(client.runs).toBe(2);
     expect(repository.getSource(DEMO_SOURCE_ID)?.currentState).toBe("REVIEW_PENDING");
     expect(incident?.healState).toBe("review_pending");
-    expect(incident?.healDiff).toEqual([
-      { field: "addressText", before: ".old", after: ".new" }
-    ]);
+    expect(incident?.healDiff).toEqual([{ field: "addressText", before: ".old", after: ".new" }]);
   });
 
   it("restores degraded trusted-data semantics when a repair is rejected", async () => {

@@ -192,9 +192,9 @@ describe("state and freshness", () => {
     expect(() => transitionSourceState("HEALTHY", { type: "HEAL_PREVIEW_READY" })).toThrow(
       "cannot handle HEAL_PREVIEW_READY"
     );
-    expect(() =>
-      transitionSourceState("REVIEW_PENDING", { type: "CHECK_STARTED" })
-    ).toThrow("cannot handle CHECK_STARTED");
+    expect(() => transitionSourceState("REVIEW_PENDING", { type: "CHECK_STARTED" })).toThrow(
+      "cannot handle CHECK_STARTED"
+    );
   });
 });
 

@@ -131,10 +131,7 @@ export class IngestionService {
       if (incident?.healState === "running") {
         this.repository.updateIncidentHeal({ incidentId: incident.id, healState: "failed" });
       }
-      this.repository.setSourceState(
-        sourceId,
-        this.healingFailureState(sourceId, "HEALING")
-      );
+      this.repository.setSourceState(sourceId, this.healingFailureState(sourceId, "HEALING"));
       this.repository.addTimelineEvent({
         sourceId,
         occurredAt,

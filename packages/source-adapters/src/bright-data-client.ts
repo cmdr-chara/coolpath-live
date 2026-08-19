@@ -304,11 +304,7 @@ export class BrightDataScraperStudioClient implements ScraperStudioClient {
       throwIfAborted(signal);
       if (response.ok) return response;
 
-      if (
-        method === "GET" &&
-        attempt < maxAttempts &&
-        isRetryableReadStatus(response.status)
-      ) {
+      if (method === "GET" && attempt < maxAttempts && isRetryableReadStatus(response.status)) {
         await response.text();
         throwIfAborted(signal);
         await this.sleep(signal, Math.min(this.pollIntervalMs * 2 ** (attempt - 1), 5_000));
