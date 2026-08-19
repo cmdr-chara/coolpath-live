@@ -91,7 +91,7 @@ export interface ValidationSummary {
   requiredFieldCompleteness: number;
   optionalClaimCoverage: number;
   contentHash: string;
-  coverage?: SourceCoverageMetrics;
+  coverage?: SourceCoverageMetrics | undefined;
   sites: CoolingSite[];
 }
 
