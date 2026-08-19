@@ -1,7 +1,7 @@
 import { isWithinTtl, transitionSourceState } from "@coolpath/domain";
 import type { CoolPathRepository, StoredSource } from "@coolpath/db";
 import { SourceNotFoundError } from "./errors.js";
-import { SourceOperationCoordinator } from "./source-operation-coordinator.js";
+import type { SourceOperationCoordinator } from "./source-operation-coordinator.js";
 
 export class SourceLifecycleService {
   constructor(
