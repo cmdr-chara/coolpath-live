@@ -17,13 +17,7 @@ export function AppHeader({
           href="?"
           onClick={(event: MouseEvent<HTMLAnchorElement>) => onNavigate("public", event)}
         >
-          <span className="wordmark__mark" aria-hidden="true">
-            CP
-          </span>
-          <span>
-            <strong>CoolPath Live</strong>
-            <small>Evidence-first cooling directory</small>
-          </span>
+          <strong>CoolPath</strong>
         </a>
         <nav className="primary-nav" aria-label="Application views">
           <a

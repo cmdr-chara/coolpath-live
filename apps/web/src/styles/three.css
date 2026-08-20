@@ -1,0 +1,314 @@
+/* Civic surface polish plus the Three.js park reconstruction. */
+.app-header {
+  background: rgb(250 252 251 / 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.app-header__inner {
+  min-height: 58px;
+}
+
+.wordmark {
+  gap: 0;
+}
+
+.wordmark strong {
+  color: #102d27;
+  font-size: 15px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.primary-nav a[aria-current="page"]::after {
+  height: 1px;
+  border-radius: 0;
+}
+
+.directory-view {
+  padding-top: 32px;
+}
+
+.directory-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 460px;
+  overflow: hidden;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.directory-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.16),
+      transparent 18%,
+      transparent 80%,
+      rgb(51 105 83 / 0.05)
+    ),
+    linear-gradient(90deg, transparent 72%, rgb(28 97 74 / 0.035));
+  content: "";
+  pointer-events: none;
+}
+
+.directory-hero::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    #ffffff 43%,
+    rgb(255 255 255 / 0.94) 51%,
+    rgb(255 255 255 / 0.74) 58%,
+    rgb(255 255 255 / 0.28) 68%,
+    transparent 80%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.directory-hero__copy {
+  position: relative;
+  z-index: 2;
+  min-height: 460px;
+  width: 60%;
+  padding: 48px 54px 44px 36px;
+}
+
+.directory-hero h1 {
+  max-width: 610px;
+  font-size: clamp(46px, 5vw, 68px);
+}
+
+.directory-intro__lede {
+  max-width: 580px;
+}
+
+.directory-meta__status {
+  min-height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.directory-meta a {
+  min-height: auto;
+  padding: 0 0 1px;
+  border-bottom: 1px solid #bad3c8;
+  border-radius: 0;
+  background: transparent;
+}
+
+.directory-search {
+  width: min(600px, 100%);
+}
+
+.directory-search input {
+  border-color: #b8cbc4;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 12px 34px rgb(45 82 68 / 0.055);
+}
+
+.site-record__mark {
+  border: 1px solid #a9c9bc;
+  border-radius: 2px;
+  color: var(--brand);
+  background: transparent;
+  box-shadow: none;
+}
+
+.text-action {
+  border-radius: 2px;
+}
+
+/* Keep the technical workspace infrastructural rather than card-like. */
+.integrity-hero {
+  padding: 26px 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pipeline-panel,
+.incident-feature,
+.presenter-steps,
+.verification-card > img,
+.trust-card > img {
+  border-radius: 2px;
+}
+
+/* Layered Three.js reconstruction of the original Philadelphia cooling-corridor artwork. */
+.cooling-park-scene {
+  position: absolute;
+  inset: 0 0 0 45%;
+  z-index: 0;
+  margin: 0;
+  overflow: hidden;
+  background: #e9f6f4;
+  pointer-events: none;
+}
+
+.cooling-park-scene::after {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 70% 28%, rgb(255 255 255 / 0.22), transparent 34%),
+    linear-gradient(180deg, transparent 58%, rgb(53 98 76 / 0.055));
+  content: "";
+  pointer-events: none;
+}
+
+.cooling-park-scene__fallback,
+.cooling-park-scene canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cooling-park-scene__fallback {
+  object-fit: cover;
+  object-position: 58% center;
+  opacity: 1;
+  filter: saturate(0.98) contrast(1.01);
+  transition: opacity 480ms ease;
+}
+
+.cooling-park-scene canvas {
+  opacity: 0;
+  filter: saturate(1.015) contrast(1.015);
+  transform: scale(1.012);
+  transition: opacity 480ms ease;
+}
+
+.cooling-park-scene[data-ready="true"] .cooling-park-scene__fallback {
+  opacity: 0;
+}
+
+.cooling-park-scene[data-ready="true"] canvas {
+  opacity: 1;
+}
+
+@media (max-width: 1100px) {
+  .directory-hero {
+    min-height: 0;
+  }
+
+  .directory-hero::after {
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      #ffffff 54%,
+      rgb(255 255 255 / 0.9) 68%,
+      transparent 92%
+    );
+  }
+
+  .directory-hero__copy {
+    min-height: 0;
+    width: 74%;
+    padding: 38px 34px 34px 28px;
+  }
+
+  .cooling-park-scene {
+    inset: 0 0 0 50%;
+  }
+
+  .cooling-park-scene canvas {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header__inner {
+    min-height: 54px;
+  }
+
+  .wordmark strong {
+    font-size: 14px;
+  }
+
+  .primary-nav a {
+    min-height: 54px;
+  }
+
+  .directory-view {
+    padding-top: 18px;
+  }
+
+  .directory-hero {
+    border-radius: 0;
+  }
+
+  .directory-hero::before {
+    display: none;
+  }
+
+  .directory-hero::after {
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      rgb(255 255 255 / 0.98) 64%,
+      rgb(255 255 255 / 0.74) 100%
+    );
+  }
+
+  .directory-hero__copy {
+    width: 100%;
+    padding: 24px 18px 20px;
+  }
+
+  .directory-hero h1 {
+    max-width: min(330px, 100%);
+    font-size: 34px;
+  }
+
+  .cooling-park-scene {
+    inset: 0 0 0 45%;
+    opacity: 0.32;
+  }
+
+  .cooling-park-scene__fallback {
+    object-position: 55% center;
+  }
+
+  .directory-meta__report {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .directory-search input {
+    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .site-record__mark {
+    border-radius: 2px;
+  }
+
+  .integrity-hero {
+    padding: 20px 0;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cooling-park-scene__fallback,
+  .cooling-park-scene canvas {
+    transition: none;
+  }
+}

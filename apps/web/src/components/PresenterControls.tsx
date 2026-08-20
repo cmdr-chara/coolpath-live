@@ -1,7 +1,8 @@
-import { ArrowClockwise, Check, Heartbeat, Wrench } from "@phosphor-icons/react";
+import { ArrowClockwise, Check, Heartbeat, Wrench, X } from "@phosphor-icons/react";
+import { useState } from "react";
 import type { Incident, SourceState } from "../types";
 
-export type DemoAction = "reset" | "drift" | "heal" | "approve";
+export type DemoAction = "reset" | "drift" | "heal" | "approve" | "reject";
 
 export function PresenterControls({
   state,
@@ -16,6 +17,7 @@ export function PresenterControls({
   feedback: string;
   onAction: (action: DemoAction) => void;
 }) {
+  const [instruction, setInstruction] = useState("");
   const actions = [
     {
       id: "reset" as const,
@@ -23,7 +25,7 @@ export function PresenterControls({
       label: "Healthy baseline",
       detail: "Publish the passing fixture",
       icon: ArrowClockwise,
-      disabled: pending
+      unavailableReason: pending ? "Wait for the current action to finish." : null
     },
     {
       id: "drift" as const,
@@ -31,7 +33,7 @@ export function PresenterControls({
       label: "Simulate drift",
       detail: "Quarantine malformed output",
       icon: Heartbeat,
-      disabled: pending
+      unavailableReason: pending ? "Wait for the current action to finish." : null
     },
     {
       id: "heal" as const,
@@ -39,7 +41,13 @@ export function PresenterControls({
       label: "Prepare repair",
       detail: "Generate a selector preview",
       icon: Wrench,
-      disabled: pending || !incident || state === "REVIEW_PENDING"
+      unavailableReason: pending
+        ? "Wait for the current action to finish."
+        : state === "REVIEW_PENDING"
+          ? "A repair preview is already ready for review."
+          : !incident
+            ? "Run Simulate drift first to create a quarantined candidate."
+            : null
     },
     {
       id: "approve" as const,
@@ -47,7 +55,23 @@ export function PresenterControls({
       label: "Approve and re-run",
       detail: "Validate before publication",
       icon: Check,
-      disabled: pending || state !== "REVIEW_PENDING"
+      unavailableReason: pending
+        ? "Wait for the current action to finish."
+        : state !== "REVIEW_PENDING"
+          ? "Run Prepare repair first, then review the preview."
+          : null
+    },
+    {
+      id: "reject" as const,
+      number: "05",
+      label: "Reject repair",
+      detail: "Keep the collector unchanged",
+      icon: X,
+      unavailableReason: pending
+        ? "Wait for the current action to finish."
+        : state !== "REVIEW_PENDING"
+          ? "Run Prepare repair first, then review the preview."
+          : null
     }
   ];
 
@@ -66,9 +90,17 @@ export function PresenterControls({
           return (
             <li key={action.id}>
               <button
-                disabled={action.disabled}
                 aria-describedby="presenter-feedback"
-                onClick={() => onAction(action.id)}
+                data-unavailable={Boolean(action.unavailableReason)}
+                title={action.unavailableReason ?? undefined}
+                onClick={() => {
+                  if (action.unavailableReason) {
+                    setInstruction(`${action.label}: ${action.unavailableReason}`);
+                    return;
+                  }
+                  setInstruction("");
+                  onAction(action.id);
+                }}
               >
                 <span className="presenter-steps__number">{action.number}</span>
                 <Icon size={20} aria-hidden="true" />
@@ -82,7 +114,7 @@ export function PresenterControls({
         })}
       </ol>
       <p id="presenter-feedback" className="presenter-feedback" aria-live="polite">
-        {feedback}
+        {instruction || feedback}
       </p>
     </section>
   );

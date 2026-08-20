@@ -1,7 +1,7 @@
 import { ArrowSquareOut, Heartbeat } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
-import { decideHeal, getDirectory, getIncident, runDemoAction } from "./api";
+import { decideHeal, getDirectory, runDemoAction } from "./api";
 import { AppHeader, type AppView } from "./components/AppHeader";
 import { DirectoryView } from "./components/DirectoryView";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
@@ -13,14 +13,17 @@ const pendingMessages: Record<DemoAction, string> = {
   reset: "Resetting the source and publishing the healthy baseline…",
   drift: "Running the drifted collector and validating its candidate…",
   heal: "Preparing the field-specific repair preview…",
-  approve: "Applying the approved selectors, re-running and validating the collector…"
+  approve: "Applying the approved selectors, re-running and validating the collector…",
+  reject: "Rejecting the repair preview without changing the collector…"
 };
 
 const successMessages: Record<DemoAction, string> = {
   reset: "Healthy baseline published. The public snapshot passed the complete contract.",
   drift: "Drift detected. The candidate is quarantined and the last trusted report remains public.",
   heal: "Repair preview prepared. Manual approval is required before any selector change is used.",
-  approve: "Repair approved. The re-run passed validation and the recovered snapshot was published."
+  approve:
+    "Repair approved. The re-run passed validation and the recovered snapshot was published.",
+  reject: "Repair rejected. No selector change was applied; trusted data stays protected."
 };
 
 function readView(): AppView {
@@ -39,22 +42,15 @@ export default function App() {
   const queryClient = useQueryClient();
 
   const cityQuery = useQuery({ queryKey: ["directory"], queryFn: getDirectory });
-  const incidentQuery = useQuery({
-    queryKey: ["incident", cityQuery.data?.source.id],
-    queryFn: () => getIncident(cityQuery.data?.source.id ?? ""),
-    enabled: Boolean(cityQuery.data?.source.id)
-  });
 
   const refresh = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["directory"] }),
-      queryClient.invalidateQueries({ queryKey: ["incident"] })
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ["directory"] });
   }, [queryClient]);
 
   const action = useMutation({
     mutationFn: async (next: DemoAction) => {
       if (next === "approve") return decideHeal(true);
+      if (next === "reject") return decideHeal(false);
       return runDemoAction(next);
     },
     onMutate: (next) => {
@@ -64,7 +60,13 @@ export default function App() {
       await refresh();
       setActionFeedback(successMessages[next]);
     },
-    onError: () => {
+    onError: (_error, next) => {
+      if (next === "reset") {
+        setActionFeedback(
+          "The demo reset failed before a replacement baseline was published. Retry the reset before continuing."
+        );
+        return;
+      }
       setActionFeedback(
         "The selected demo action failed. The existing public snapshot was not replaced."
       );
@@ -129,25 +131,17 @@ export default function App() {
       ) : (
         <TechnicalView
           city={city}
-          incident={incidentQuery.data ?? null}
+          incident={city.incident}
           controls={
-            <>
-              {incidentQuery.isError ? (
-                <p className="inline-error" role="alert">
-                  Incident details could not be loaded. Source status and the protected public
-                  snapshot remain visible.
-                </p>
-              ) : null}
-              {city.source.mode === "mock" ? (
-                <PresenterControls
-                  state={city.source.status}
-                  incident={incidentQuery.data ?? null}
-                  pending={action.isPending}
-                  feedback={actionFeedback}
-                  onAction={(next) => action.mutate(next)}
-                />
-              ) : null}
-            </>
+            city.source.mode === "mock" ? (
+              <PresenterControls
+                state={city.source.status}
+                incident={city.incident}
+                pending={action.isPending}
+                feedback={actionFeedback}
+                onAction={(next) => action.mutate(next)}
+              />
+            ) : null
           }
         />
       )}
@@ -159,9 +153,13 @@ export default function App() {
             <span>Evidence before availability.</span>
           </div>
           <p>Public facility information only. No location tracking, accounts or analytics.</p>
-          <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
-            Source page <ArrowSquareOut size={15} aria-hidden="true" />
-          </a>
+          {city.source.mode === "mock" ? (
+            <span className="source-fixture">Synthetic demo source</span>
+          ) : (
+            <a href={city.source.canonicalUrl} target="_blank" rel="noreferrer">
+              Source page <ArrowSquareOut size={15} aria-hidden="true" />
+            </a>
+          )}
         </div>
       </footer>
 

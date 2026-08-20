@@ -1,123 +1,40 @@
-export type SourceState =
-  | "UNINITIALIZED"
-  | "CHECKING"
-  | "HEALTHY"
-  | "DEGRADED"
-  | "STALE"
-  | "BROKEN"
-  | "HEALING"
-  | "REVIEW_PENDING"
-  | "RECOVERED";
+import type {
+  ApiCityIdentity,
+  ApiCityResponse,
+  ApiCitySummary,
+  ApiIncidentReadModel,
+  ApiLatestRun,
+  ApiPublishedSnapshot,
+  ApiRunValidationSummary,
+  ApiSourceReadModel,
+  ApiTimelineEvent,
+  HealState as DomainHealState,
+  SourceCoverageMetrics,
+  SourceMode as DomainSourceMode
+} from "@coolpath/domain";
 
-export interface ExplicitClaim {
-  kind: "accessibility" | "amenity" | "other";
-  label: string;
-  evidenceText: string;
-  sourceUrl: string;
-  evidenceLocator?: string;
-}
+export type {
+  CoolingSite,
+  ExplicitClaim,
+  QualityDisposition,
+  ReasonCode,
+  SnapshotStatus,
+  SourceState,
+  TemporalClaim
+} from "@coolpath/domain";
 
-export type TemporalClaim =
-  | {
-      kind: "weekly_windows";
-      timezone: string;
-      windows: Array<{ day: string; opensAt: string; closesAt: string; sourceText: string }>;
-      evidenceText: string;
-    }
-  | {
-      kind: "activation_range";
-      startsOn: string;
-      endsOn: string;
-      evidenceText: string;
-    }
-  | { kind: "source_text"; text: string }
-  | { kind: "not_provided" };
-
-export interface CoolingSite {
-  id: string;
-  cityId: string;
-  sourceKey: string;
-  name: string;
-  addressText: string;
-  evidenceUrl: string;
-  temporalClaim: TemporalClaim;
-  explicitClaims: ExplicitClaim[];
-  observedAt: string;
-}
-
-export interface TimelineEvent {
-  id: string;
-  occurredAt: string;
-  kind: string;
-  title: string;
-  detail: string;
-  tone: "neutral" | "positive" | "warning" | "critical";
-}
-
-export interface CitySummary {
-  id: string;
-  slug: string;
-  displayName: string;
-  region: string;
-  timezone: string;
-  sourceStatus: SourceState;
-  lastVerified: string | null;
-  lastVerifiedLocal: string | null;
-  siteCount: number;
-  mode: "real" | "mock";
-}
-
-export interface CityResponse {
-  city: {
-    id: string;
-    slug: string;
-    displayName: string;
-    region: string;
-    timezone: string;
-  };
-  source: {
-    id: string;
-    agencyName: string;
-    canonicalUrl: string;
-    collectorId: string;
-    freshnessTtlMinutes: number;
-    policyVersion: string;
-    status: SourceState;
-    mode: "real" | "mock";
-  };
-  snapshot: {
-    id: string;
-    observedAt: string;
-    observedAtLocal?: string;
-    contentHash: string;
-    status: string;
-    sites: CoolingSite[];
-  } | null;
-  latestRun: {
-    id: string;
-    startedAt: string;
-    completedAt: string;
-    outcome: string;
-    collectorVersion: string;
-    recordCount: number;
-    reasonCodes: string[];
-    validationSummary: {
-      requiredFieldCompleteness: number;
-      optionalClaimCoverage: number;
-    };
-  } | null;
-  timeline: TimelineEvent[];
-}
-
-export interface Incident {
-  id: string;
-  severity: "warning" | "critical";
-  reasonCodes: string[];
-  openedAt: string;
-  healState: string;
-  healPrompt: string | null;
-  healDiff: Array<{ field: string; before: string; after: string }>;
-}
+export type SourceMode = DomainSourceMode;
+export type CityIdentity = ApiCityIdentity;
+export type TimelineEvent = ApiTimelineEvent;
+export type CitySummary = ApiCitySummary;
+export type SourceReadModel = ApiSourceReadModel;
+export type PublishedSnapshot = ApiPublishedSnapshot;
+export type SourceCoverage = SourceCoverageMetrics;
+export type RunValidationSummary = ApiRunValidationSummary;
+export type LatestRun = ApiLatestRun;
+export type CityResponse = ApiCityResponse;
+export type HealState = DomainHealState;
+export type Incident = ApiIncidentReadModel;
 
 export interface ApiEnvelope<T> {
   data: T;

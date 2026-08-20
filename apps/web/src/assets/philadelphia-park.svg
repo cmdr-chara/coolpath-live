@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Philadelphia park and skyline illustration</title>
+  <desc id="desc">A tree-lined cooling corridor with a distant Philadelphia skyline in soft green and blue tones.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9f6f4"/>
+      <stop offset="0.62" stop-color="#f7fbf8"/>
+      <stop offset="1" stop-color="#dceee2"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9ead6"/>
+      <stop offset="1" stop-color="#8fbd8d"/>
+    </linearGradient>
+    <linearGradient id="path" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f0df"/>
+      <stop offset="1" stop-color="#d9d2bd"/>
+    </linearGradient>
+    <linearGradient id="building" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b7d3d6"/>
+      <stop offset="1" stop-color="#83aeb2"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="11"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="720" fill="url(#sky)"/>
+  <g opacity=".38" filter="url(#soft)">
+    <ellipse cx="248" cy="142" rx="190" ry="92" fill="#ffffff"/>
+    <ellipse cx="756" cy="126" rx="260" ry="110" fill="#ffffff"/>
+  </g>
+  <g opacity=".72">
+    <rect x="505" y="215" width="70" height="260" rx="4" fill="#a9c9cc"/>
+    <rect x="588" y="168" width="88" height="307" rx="4" fill="url(#building)"/>
+    <rect x="690" y="248" width="62" height="227" rx="4" fill="#9fc4c7"/>
+    <rect x="768" y="205" width="78" height="270" rx="4" fill="#bdd6d7"/>
+    <rect x="856" y="278" width="52" height="197" rx="4" fill="#9ebec1"/>
+    <path d="M624 168h16l6-56 6 56h16v307h-44z" fill="#789ea3"/>
+    <path d="M801 205h12l5-43 5 43h12v270h-34z" fill="#91b4b7"/>
+  </g>
+  <path d="M0 486c155-52 280-42 390-14 132 34 225 9 336-8 155-24 303-4 474 50v206H0z" fill="url(#ground)"/>
+  <path d="M330 720c81-112 181-188 300-228 147-50 280-49 410-10-171 27-299 77-392 146-37 27-65 57-88 92z" fill="url(#path)" opacity=".96"/>
+  <path d="M382 720c73-82 162-144 265-184 116-45 229-59 339-42" fill="none" stroke="#c0b79d" stroke-width="8" opacity=".5"/>
+  <g fill="#4f8d68">
+    <circle cx="128" cy="380" r="74"/><circle cx="184" cy="338" r="64"/><circle cx="226" cy="392" r="70"/>
+    <circle cx="944" cy="350" r="96"/><circle cx="1026" cy="310" r="82"/><circle cx="1096" cy="374" r="94"/>
+  </g>
+  <g fill="#6da678">
+    <circle cx="84" cy="438" r="64"/><circle cx="284" cy="432" r="72"/><circle cx="892" cy="426" r="78"/><circle cx="1148" cy="444" r="82"/>
+  </g>
+  <g fill="#91bd88" opacity=".95">
+    <circle cx="349" cy="420" r="52"/><circle cx="405" cy="402" r="42"/><circle cx="824" cy="442" r="52"/>
+  </g>
+  <g stroke="#3c6e50" stroke-width="16" stroke-linecap="round">
+    <path d="M175 387v180"/><path d="M266 422v160"/><path d="M982 365v228"/><path d="M1082 382v208"/>
+  </g>
+  <g stroke="#5d8f64" stroke-width="10" stroke-linecap="round">
+    <path d="M350 432v130"/><path d="M827 448v122"/>
+  </g>
+  <path d="M0 590c146 16 268 4 371-34" fill="none" stroke="#7da98b" stroke-width="24" opacity=".55"/>
+  <g opacity=".78" fill="#355f4a">
+    <rect x="459" y="506" width="48" height="8" rx="4"/><rect x="469" y="514" width="6" height="34" rx="3"/><rect x="492" y="514" width="6" height="34" rx="3"/>
+  </g>
+  <circle cx="922" cy="120" r="28" fill="#f4c977" opacity=".82"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720">
+  <defs>
+    <linearGradient id="building" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b7d3d6"/>
+      <stop offset="1" stop-color="#83aeb2"/>
+    </linearGradient>
+  </defs>
+  <g opacity=".72">
+    <rect x="505" y="215" width="70" height="260" rx="4" fill="#a9c9cc"/>
+    <rect x="588" y="168" width="88" height="307" rx="4" fill="url(#building)"/>
+    <rect x="690" y="248" width="62" height="227" rx="4" fill="#9fc4c7"/>
+    <rect x="768" y="205" width="78" height="270" rx="4" fill="#bdd6d7"/>
+    <rect x="856" y="278" width="52" height="197" rx="4" fill="#9ebec1"/>
+    <path d="M624 168h16l6-56 6 56h16v307h-44z" fill="#789ea3"/>
+    <path d="M801 205h12l5-43 5 43h12v270h-34z" fill="#91b4b7"/>
+  </g>
+</svg>

@@ -5,10 +5,14 @@ import { formatTemporalClaim, formatTemporalClaimLabel } from "./temporal";
 
 export function SiteList({
   sites,
-  onEvidence
+  onEvidence,
+  sharedTemporalStatement,
+  sharedClaimStatement
 }: {
   sites: CoolingSite[];
   onEvidence: (site: CoolingSite, trigger: HTMLButtonElement) => void;
+  sharedTemporalStatement: string | undefined;
+  sharedClaimStatement: string | undefined;
 }) {
   if (sites.length === 0) {
     return (
@@ -21,40 +25,57 @@ export function SiteList({
 
   return (
     <div className="site-list">
-      {sites.map((site, index) => {
+      {sites.map((site) => {
         const titleId = `site-${site.id.replaceAll(":", "-")}`;
+        const explicitClaimLabel =
+          site.explicitClaims.length > 0
+            ? site.explicitClaims.map((claim) => claim.label).join(", ")
+            : "Additional facility claims not stated";
+        const temporalStatement = formatTemporalClaim(site.temporalClaim);
+        const showTemporalStatement = temporalStatement !== sharedTemporalStatement;
+        const normalizedClaimStatement =
+          explicitClaimLabel === "Additional facility claims not stated"
+            ? "No additional facility claims stated"
+            : explicitClaimLabel;
+        const showClaimStatement = normalizedClaimStatement !== sharedClaimStatement;
+        const hasUniqueSummary = showTemporalStatement || showClaimStatement;
+
         return (
-          <article className="site-record" key={site.id} aria-labelledby={titleId}>
-            <div className="site-record__index" aria-hidden="true">
-              {String(index + 1).padStart(2, "0")}
-            </div>
+          <article
+            className={`site-record${hasUniqueSummary ? "" : " site-record--compact"}`}
+            key={site.id}
+            aria-labelledby={titleId}
+            data-motion-item
+          >
             <div className="site-record__identity">
-              <h2 id={titleId}>{site.name}</h2>
-              <address>
-                <MapPinLine size={18} aria-hidden="true" />
-                <span>{site.addressText}</span>
-              </address>
+              <span className="site-record__mark" aria-hidden="true">
+                <MapPinLine size={19} weight="bold" />
+              </span>
+              <div>
+                <h2 id={titleId}>{site.name}</h2>
+                <address>{site.addressText}</address>
+              </div>
             </div>
-            <dl className="site-record__facts">
-              <div>
-                <dt>
-                  <CalendarBlank size={16} aria-hidden="true" />
-                  {formatTemporalClaimLabel(site.temporalClaim)}
-                </dt>
-                <dd>{formatTemporalClaim(site.temporalClaim)}</dd>
+
+            {hasUniqueSummary ? (
+              <div className="site-record__summary">
+                {showTemporalStatement ? (
+                  <span>
+                    <CalendarBlank size={15} aria-hidden="true" />
+                    <strong>{formatTemporalClaimLabel(site.temporalClaim)}</strong>
+                    <span>{temporalStatement}</span>
+                  </span>
+                ) : null}
+                {showClaimStatement ? (
+                  <span>
+                    <Wheelchair size={15} aria-hidden="true" />
+                    <strong>Source claims</strong>
+                    <span>{explicitClaimLabel}</span>
+                  </span>
+                ) : null}
               </div>
-              <div>
-                <dt>
-                  <Wheelchair size={16} aria-hidden="true" />
-                  Explicit facility claims
-                </dt>
-                <dd>
-                  {site.explicitClaims.length > 0
-                    ? site.explicitClaims.map((claim) => claim.label).join(", ")
-                    : "Not stated by the source"}
-                </dd>
-              </div>
-            </dl>
+            ) : null}
+
             <button
               className="text-action"
               aria-label={`View evidence for ${site.name}`}
@@ -62,7 +83,7 @@ export function SiteList({
                 onEvidence(site, event.currentTarget)
               }
             >
-              Evidence record <ArrowUpRight size={17} aria-hidden="true" />
+              Evidence <ArrowUpRight size={16} aria-hidden="true" />
             </button>
           </article>
         );

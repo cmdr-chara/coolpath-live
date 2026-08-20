@@ -41,20 +41,26 @@ export function EvidenceDrawer({
               returnFocusTo.focus();
             }}
           >
-            <div className="evidence-drawer__topline">
-              <span>SOURCE RECORD / {site.id}</span>
+            <header className="evidence-drawer__header">
+              <div>
+                <p className="evidence-drawer__topline">Evidence ledger</p>
+                <Dialog.Title>{site.name}</Dialog.Title>
+                <Dialog.Description id="evidence-description">
+                  Traceable to {sourceName}. Missing information remains explicitly unstated.
+                </Dialog.Description>
+              </div>
+              <Dialog.Close asChild>
+                <button className="icon-button drawer-close" aria-label="Close evidence record">
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </Dialog.Close>
+            </header>
+
+            <div className={`evidence-status evidence-status--${status.tone}`}>
+              <span className="status-dot" aria-hidden="true" />
               <span>{status.reportLabel}</span>
+              <code>{site.id}</code>
             </div>
-            <Dialog.Close asChild>
-              <button className="icon-button drawer-close" aria-label="Close evidence record">
-                <X size={20} aria-hidden="true" />
-              </button>
-            </Dialog.Close>
-            <p className="kicker">Evidence ledger</p>
-            <Dialog.Title>{site.name}</Dialog.Title>
-            <Dialog.Description id="evidence-description">
-              Traceable to {sourceName}. Missing information remains explicitly unstated.
-            </Dialog.Description>
 
             <dl className="evidence-ledger">
               <div>
@@ -96,7 +102,7 @@ export function EvidenceDrawer({
             </section>
 
             <a className="primary-action" href={site.evidenceUrl} target="_blank" rel="noreferrer">
-              Open source page <ArrowSquareOut size={18} aria-hidden="true" />
+              Open source page <ArrowSquareOut size={17} aria-hidden="true" />
             </a>
           </Dialog.Content>
         ) : null}
