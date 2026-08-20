@@ -1,96 +1,117 @@
-# Submission copy — Into the Scrape-Verse
+# CoolPath Live submission copy
 
-Prepared on 2026-08-18. This file contains form-ready project copy only; it does not plan the demo video.
+Prepared: 2026-08-20
 
-## Project title
+The copy below distinguishes verified provider evidence, deterministic fixture behavior, and the one remaining exact-final-commit live gate. Replace only the bracketed repository and video placeholders before submission.
 
-CoolPath Live
+## 50-word pitch
 
-## One-line pitch
+CoolPath Live turns Bright Data Scraper Studio output into a fail-closed cooling-location evidence ledger. Every Pennsylvania 211 collection is normalized, typed, validated, and either published transactionally or quarantined. When extraction drifts, the last trusted snapshot stays public while a human reviews healing and the same Collector ID is re-run safely.
 
-CoolPath Live turns Bright Data Scraper Studio output into a fail-closed civic-information pipeline that keeps the last trusted cooling-location snapshot public when a source changes or extraction becomes suspicious.
+## 150-word description
 
-## Short description
+CoolPath Live is an evidence-first cooling-location directory powered by a custom Bright Data Scraper Studio collector for Pennsylvania 211. The collector returns structured facility names, addresses, service statements, and evidence URLs. CoolPath normalizes those rows into strict TypeScript and Zod contracts, records aggregate lineage, and creates a candidate snapshot. Only a publishable candidate can update the transactional publishedSnapshotId pointer used by the public API and React directory. Suspicious or malformed candidates are quarantined, incidents remain visible, and the last trusted snapshot stays available within its freshness policy. A deterministic fixture demonstrates controlled drift, manual repair review, rejection, approval, and validated recovery without pretending a real website changed on command. Separate sanitized evidence records a real Scraper Studio healing operation on August 20, 2026, with the same Collector ID before and after. Mock startup, tests, public reads, liveness, and readiness never trigger paid Bright Data collection or expose raw rejected rows.
 
-CoolPath Live is an evidence-first cooling-centre directory powered by a custom Bright Data Scraper Studio collector for Pennsylvania 211. Every collection is normalized, validated and either transactionally published or quarantined, so the newest scrape never automatically becomes public truth.
+## Long-form description
 
-## Full project description
+Cooling-location information can matter during extreme heat, but the pages that publish it can change independently of the systems that reuse it. A scraper can still return HTTP 200 while silently losing rows, returning malformed fields, switching language, or extracting unrelated content. CoolPath Live treats that as a trust-boundary problem rather than a scraping-only problem.
 
-Public cooling-centre pages can change without warning. A scraper may still return HTTP 200 while silently losing facilities, returning malformed fields or extracting stale operational text. For civic information, treating “newest” as “correct” is a dangerous default.
+The real ingestion path begins with a custom Bright Data Scraper Studio collector for the public Pennsylvania 211 Philadelphia cooling-center search. The collector identity is stable: `c_msxe8lsm2630ya30wu`. Its structured rows contain `facility_name`, `address`, `service_text`, and `evidence_url`. The PA211 adapter validates the row shape, filters non-location results, removes exact duplicates, restricts evidence to the approved HTTPS origin, and converts accepted rows into canonical `CoolingSite` records.
 
-CoolPath Live puts Bright Data Scraper Studio at the beginning of a trust pipeline rather than at the end of a demo. The production collector `c_msxe8lsm2630ya30wu` collects the public Pennsylvania 211 Philadelphia cooling-centre directory. A source-specific adapter normalizes the provider output into strict TypeScript/Zod domain contracts. Hard failures and suspicious soft anomalies prevent publication. Valid candidates are promoted transactionally through a `publishedSnapshotId` boundary in SQLite; quarantined candidates cannot overwrite the last trusted snapshot.
+Those records then pass strict domain validation and quality checks. CoolPath records provider rows received, normalized rows accepted, non-locations filtered, duplicates removed, validation rejections, quarantined records, and trusted published records. A passing candidate is transactionally promoted through `source.publishedSnapshotId` in SQLite. The public Fastify API and React directory read only through that pointer. A failed candidate is quarantined and cannot replace the last trusted snapshot.
 
-The Fastify API exposes only trusted published data. The React interface provides a calm public directory plus a technical view that makes source state, provenance, quarantine and recovery visible. The backend separates liveness from readiness, uses bounded errors and source allowlists, prevents overlapping paid source operations with per-source single-flight coordination, reconciles freshness deterministically, supports semantic ETags, applies versioned database migrations and shuts down cleanly.
+The recovery path remains human-gated. CoolPath records an incident, requests a bounded field-specific repair, displays the proposed selector changes, and allows explicit approval or rejection. Approval is not treated as proof. The application waits for Bright Data Self-Healing to complete, re-runs the same Collector ID, and sends the fresh output through the complete normalizer, domain, and publication contract again.
 
-A deterministic mock source makes drift and recovery reproducible without spending provider credits or pretending a real website changed on command. The real Bright Data path remains separate and deliberately credit-safe.
+The repository contains two deliberately separate forms of evidence:
 
-## How Bright Data Scraper Studio is used
+- Live captured and sanitized Bright Data evidence from August 20, 2026, including a real Self-Healing flow. The first preview was rejected because it moved results to the Spanish path; the corrected preview was approved, completed on the same Collector ID, and produced a publishable 24-provider-row to 23-location result.
+- A deterministic controlled-drift fixture used by tests and the presenter UI. It makes quarantine, rejection, approval, and recovery repeatable without claiming a real website changed on command or spending provider credits.
 
-Bright Data Scraper Studio is the production ingestion boundary for the real source.
+The remaining external gate is one deliberate integrated API publication run against the exact final submission commit. The repository records the prior real API rehearsal as `exactFinalCommit: false` rather than presenting it as stronger evidence than it is.
 
-- Custom Collector ID: `c_msxe8lsm2630ya30wu`
-- Source: Pennsylvania 211 public Philadelphia cooling-centre search
-- Collector output fields: `facility_name`, `address`, `service_text`, `evidence_url`
-- Downstream path: Scraper Studio → PA211 normalizer → canonical validation → SQLite publication/quarantine → Fastify API → React UI
-- The Collector ID is pinned in `CODEX.md` and `.env.example` so the same production endpoint is reused instead of being rebuilt between sessions.
-- Real-mode startup is credit-safe by default: `AUTO_START_REAL_CHECK=false` means the application never launches a provider run merely because the server started.
-- Operator-triggered checks accept only the seeded source ID; callers cannot submit arbitrary URLs.
+## Best Use of Bright Data
 
-The verified historical real baseline, recorded before the major hardening/refactoring pass, returned 25 provider records with zero failed crawls. Source filtering and deduplication produced 23 accepted cooling locations; the candidate was `publishable` with no reason codes and the real API published a `HEALTHY` 23-location snapshot.
+Bright Data Scraper Studio is the real production ingestion boundary, not decorative metadata.
 
-A final post-refactor live rerun of the same Collector ID is intentionally still pending. The submission must use the actual result of that rerun rather than copying the historical counts forward.
+- The custom collector targets a long-tail public nonprofit directory rather than a pre-built marketplace target.
+- The terminal/coding-agent workflow uses the existing stable `c_*` collector through the official Bright Data CLI.
+- The Collector ID is the downstream integration boundary and remains unchanged across runs and healing.
+- Real structured output powers normalization, validation, candidate snapshots, transactional publication, SQLite persistence, the public directory, evidence inspection, lineage metrics, incidents, and recovery.
+- A genuine Self-Healing operation was reviewed manually on August 20, 2026. One unsafe preview was rejected; a corrected preview was approved; the same Collector ID was re-run; and the result remained publishable.
+- The deterministic presenter is clearly labelled as controlled simulation and never substitutes for real provider evidence.
 
-## Reliability and self-healing
+## Best Clean Code
 
-CoolPath distinguishes three materially different outcomes:
+The repository encodes trust boundaries in module boundaries:
 
-1. A valid candidate can be published.
-2. A suspicious or contract-breaking candidate is quarantined while the last trusted snapshot stays public.
-3. Provider/network failures such as timeouts, DNS failures, 403 or 429 are inconclusive and are not falsely labelled as layout drift.
+- `packages/source-adapters`: Bright Data protocol, PA211 source policy, normalization, deterministic fake.
+- `packages/domain`: canonical schemas, quality policy, state machine, API contracts, time handling.
+- `packages/db`: versioned SQLite migrations, immutable snapshots, atomic publication, incidents, timeline.
+- `apps/api`: orchestration, source coordination, operator authentication, probes, sanitized HTTP errors.
+- `apps/web`: trusted public directory, evidence drawer, technical lineage, controlled presenter.
 
-When repair is appropriate, the application prepares a bounded field-specific healing request, requires manual approval, reruns the same collector identity and sends the fresh result through the same normalization and quality gates before publication. A successful repair is therefore not trusted merely because extraction returned values again.
+Strict TypeScript and Zod protect untrusted boundaries. Provider reads are bounded by complete-operation timeouts. Safe polling reads use bounded retry while mutating provider requests are not blindly repeated. Source operations are single-flight per source. Public errors are sanitized. Tests use deterministic clients and never call Bright Data. `CONTRIBUTING.md`, `CODEX.md`, the architecture documentation, reproduction guide, judging matrix, and evidence verifier give a new maintainer explicit ownership and invariants.
 
-The bundled mock flow demonstrates drift → quarantine → protected trusted snapshot → repair review → approved rerun → validated recovery deterministically. It is clearly labelled synthetic. Genuine Bright Data healing evidence should be claimed only if a real `bdata scraper heal` operation was actually performed.
+## Architecture summary
 
-## Technical challenge
+```text
+Pennsylvania 211 public HTML
+  -> Bright Data Scraper Studio collector
+  -> structured dataset rows
+  -> PA211 normalizer and origin policy
+  -> canonical CoolingSite contract
+  -> quality and freshness gates
+  -> candidate snapshot
+  -> publish or quarantine
+  -> SQLite publishedSnapshotId
+  -> Fastify public API
+  -> React directory and evidence UI
+```
 
-The hardest part was not scraping HTML; it was defining where untrusted provider output becomes public truth.
+Failure and recovery:
 
-The implementation therefore treats external data as an adversarial boundary. Source-specific parsing is isolated from the canonical domain model. Evidence URLs are restricted to the approved HTTPS origin. Duplicate identities, missing required fields, unexpected yield shifts, suspicious content replacement and optional-field collapse are evaluated before publication. Persistence promotes a candidate and updates source state transactionally, so the public API never races against a half-published snapshot.
+```text
+invalid or suspicious candidate
+  -> quarantine
+  -> incident
+  -> healing preview
+  -> human approve or reject
+  -> provider completion
+  -> same-collector rerun
+  -> full validation
+  -> recovered publication or continued quarantine
+```
 
-The hardening pass also addressed external-operation timeouts, cancellation cleanup, startup behavior, readiness semantics, cache invalidation, incident resolution, migration ownership and concurrent paid runs. The clean-code pass then separated API composition, public routes, probes, operator routes, demo routes, authentication, response semantics and error translation into explicit modules without changing frontend behavior.
+## Impact statement
 
-## Why it matters
+CoolPath demonstrates a reusable safety pattern for operational web data: provenance before convenience, validation before publication, uncertainty made visible, and continuity without silently trusting the newest scrape. Cooling locations are the concrete use case, but the same approach applies to shelters, food assistance, public service directories, and other bounded evidence-backed resources.
 
-Cooling-centre information is a useful example of a broader problem: web data is often operationally important but published through pages whose structure can change independently of downstream consumers. CoolPath demonstrates a reusable pattern for consuming self-healing scrapers safely: preserve provenance, validate semantics, quarantine uncertainty and never equate freshness with truth.
+## Source and coverage disclaimer
 
-## Track positioning
+The Bright Data target is Pennsylvania 211, a nonprofit public service directory. It is not a city agency, municipal source, or official government website. CoolPath does not scrape `phila.gov`, `fresno.gov`, or another government domain for this event.
 
-### Best Use of Bright Data
+The collector reads a bounded first page. Historical verified runs observed 24 or 25 provider rows and 23 accepted cooling locations, depending on collector state. These numbers describe those runs only. CoolPath does not claim complete coverage of all Pennsylvania 211 matches, infer missing pages, or infer real-time facility availability. Users must confirm current opening and safety information with the source before travelling.
 
-Scraper Studio is central to the real product path. The custom `c_*` collector is wired through validation, persistence, API and UI rather than used only to generate a one-off dataset.
+## Technology
 
-### Best UI
+- Bright Data Scraper Studio and Self-Healing
+- Bright Data CLI and Scraper Studio API
+- TypeScript 5, Node.js 22, pnpm workspaces
+- Fastify, Zod, Drizzle ORM, SQLite WAL
+- React, Vite, TanStack Query, Radix Dialog, GSAP
+- Vitest, Playwright, ESLint, Prettier, GitHub Actions
 
-The public interface prioritizes readable evidence and continuity. A separate technical view makes degradation and recovery understandable without leaking raw provider payloads or requiring users to understand the backend.
+## Submission links
 
-### Best Clean Code
-
-The repository encodes trust boundaries in its module boundaries: environment parsing in config, HTTP input at routes, provider behavior in source adapters, business truth in the domain package, atomic publication in the database layer and presentation in the web app. `CONTRIBUTING.md` documents module ownership, invariants and change recipes for a new contributor.
+- Repository: [REPOSITORY_URL]
+- Demo video: [DEMO_VIDEO_URL]
+- Structured output: `docs/evidence/scraper-studio-output.example.json`
+- Real healing evidence: `docs/evidence/healing-recovery.example.json`
+- Integrated publication evidence: `docs/evidence/live-api-publication.example.json`
+- Reproduction guide: `docs/bright-data-reproduction.md`
+- Judging matrix: `docs/judging-matrix.md`
+- Video runbook: `docs/video-runbook.md`
 
 ## AI-assistance disclosure
 
-OpenAI ChatGPT and Codex were used for repository inspection, implementation support, review, test design, debugging, documentation and submission preparation. Firecrawl-assisted research and additional agent/subagent assistance were used during source discovery and implementation review.
-
-AI output was not treated as authoritative. The project owner remained responsible for source selection, architecture, Bright Data configuration, security boundaries, acceptance of changes and final claims. Suggested changes were reviewed and verified with strict TypeScript, ESLint, Prettier, unit/integration tests, Playwright E2E, builds and GitHub Actions. Full disclosure is in `AI_USAGE.md`.
-
-## Links and final placeholders
-
-- Repository: <https://github.com/cmdr-chara/coolpath-live>
-- Bright Data evidence ledger: <https://github.com/cmdr-chara/coolpath-live/blob/main/docs/evidence/bright-data.md>
-- AI disclosure: <https://github.com/cmdr-chara/coolpath-live/blob/main/AI_USAGE.md>
-- Example structured output: **add after the final real rerun**
-- Final post-refactor live result: **add actual values after the final real rerun**
-- Demo video URL: **add on/after 2026-08-20**
-
-Do not replace the pending fields with historical values unless they are explicitly labelled historical.
+OpenAI ChatGPT and Codex were used for research, repository inspection, implementation support, review, test design, debugging, visual QA, documentation, and submission preparation. The project owner remains responsible for source selection, external collector configuration, approval decisions, architecture, security boundaries, verification, and every final claim. See `AI_USAGE.md` for the full disclosure.

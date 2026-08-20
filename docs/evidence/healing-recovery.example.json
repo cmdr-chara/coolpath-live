@@ -1,0 +1,59 @@
+{
+  "artifactType": "sanitized_real_scraper_studio_healing_verification",
+  "evidenceClassification": "live_captured_and_sanitized",
+  "verifiedOn": "2026-08-20",
+  "sourceId": "pa211-philadelphia-cooling",
+  "collectorIdBefore": "c_msxe8lsm2630ya30wu",
+  "collectorIdAfter": "c_msxe8lsm2630ya30wu",
+  "controlledSimulation": false,
+  "target": {
+    "organization": "Pennsylvania 211",
+    "origin": "https://search.pa211.org",
+    "governmentWebsite": false
+  },
+  "repairRequest": {
+    "scope": "Remove one duplicate result and one non-location or hotline result while preserving the English Pennsylvania 211 search, the four-field schema, and source-derived values.",
+    "manualApprovalRequired": true,
+    "autoApprovalUsed": false
+  },
+  "firstPreview": {
+    "decision": "rejected",
+    "reason": "The preview changed evidence results to the Spanish /es/ path and did not preserve the reviewed English target."
+  },
+  "secondPreview": {
+    "decision": "approved",
+    "reason": "The preview preserved English /search/ evidence URLs and the required four output fields."
+  },
+  "providerCompletion": {
+    "status": "done",
+    "templateSavedToSameCollector": true
+  },
+  "postHealRerun": {
+    "disposition": "publishable",
+    "reasonCodes": [],
+    "coverage": {
+      "providerRecordsReceived": 24,
+      "normalizedRecordsAccepted": 23,
+      "recordsFilteredNotLocations": 1,
+      "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
+      "recordsRejectedByValidation": 0,
+      "recordsQuarantined": 0
+    },
+    "rawSha256": "15c27afa2814212ac2f026903b8aa7014f26d3a80b6ccc8d35b2e61fae44d797"
+  },
+  "truthBoundary": {
+    "claimRealWebsiteChanged": false,
+    "claimCollectorOutputPerfect": false,
+    "remainingNonLocationFilteredByApplication": true,
+    "downstreamApplicationCodeChangedForRecovery": false
+  },
+  "sanitization": {
+    "credentialsIncluded": false,
+    "authorizationHeaderIncluded": false,
+    "cookiesIncluded": false,
+    "rawProviderPayloadIncluded": false,
+    "fullHealingPromptIncluded": false,
+    "personalDataIncluded": false
+  }
+}

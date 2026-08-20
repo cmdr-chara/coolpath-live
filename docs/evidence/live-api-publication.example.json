@@ -1,0 +1,76 @@
+{
+  "artifactType": "sanitized_live_api_publication_verification",
+  "evidenceClassification": "live_captured_and_sanitized",
+  "verifiedAt": "2026-08-20T12:55:40.296Z",
+  "candidate": {
+    "gitHead": "926c8f1d99b1a7d621f3b6ef5fef0e5780e0df02",
+    "workingTreeClean": false,
+    "exactFinalCommit": false
+  },
+  "environment": {
+    "mode": "real",
+    "database": ":memory:",
+    "autoStartRealCheck": false,
+    "operatorCheckProviderCalls": 1
+  },
+  "beforeCollection": {
+    "healthHttpStatus": 200,
+    "healthStatus": "ok",
+    "readinessHttpStatus": 503,
+    "readinessStatus": "not_ready",
+    "checks": {
+      "database": "usable",
+      "source": "initialized",
+      "trustedSnapshot": "unavailable"
+    },
+    "sourceState": "UNINITIALIZED"
+  },
+  "operatorCheck": {
+    "httpStatus": 200,
+    "runId": "f217d82c-8858-4972-88bc-7c752ea5f5b4",
+    "collectorId": "c_msxe8lsm2630ya30wu",
+    "sourceId": "pa211-philadelphia-cooling",
+    "disposition": "publishable",
+    "reasonCodes": [],
+    "recordCount": 23,
+    "coverage": {
+      "providerRecordsReceived": 24,
+      "normalizedRecordsAccepted": 23,
+      "recordsFilteredNotLocations": 1,
+      "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
+      "recordsRejectedByValidation": 0,
+      "recordsQuarantined": 0
+    }
+  },
+  "afterCollection": {
+    "readinessHttpStatus": 200,
+    "readinessStatus": "ready",
+    "checks": {
+      "database": "usable",
+      "source": "initialized",
+      "trustedSnapshot": "available"
+    },
+    "citySlug": "philadelphia",
+    "sourceState": "HEALTHY",
+    "snapshotId": "ce336fb4-ba34-4579-ad0d-be9abf24dc55",
+    "snapshotStatus": "published",
+    "snapshotRunId": "f217d82c-8858-4972-88bc-7c752ea5f5b4",
+    "publishedSiteCount": 23,
+    "latestRunOutcome": "publishable",
+    "latestRunRawSha256": "15c27afa2814212ac2f026903b8aa7014f26d3a80b6ccc8d35b2e61fae44d797",
+    "activeIncident": false,
+    "timelineEventCount": 2
+  },
+  "shutdown": {
+    "signal": "SIGINT",
+    "apiPortStillListening": false,
+    "persistentDatabaseArtifactCreated": false
+  },
+  "sanitization": {
+    "credentialsIncluded": false,
+    "authorizationHeaderIncluded": false,
+    "rawProviderRecordsIncluded": false,
+    "privateProviderMetadataIncluded": false
+  }
+}

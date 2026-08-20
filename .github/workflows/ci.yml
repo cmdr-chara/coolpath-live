@@ -29,18 +29,14 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm lint
-      - run: pnpm format
-      - run: pnpm build
+      - run: pnpm audit:prod
       - run: pnpm verify
       - run: git diff --check
       - run: git diff --check origin/main...HEAD
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -75,7 +71,7 @@ jobs:
               state: successful ? "success" : "failure",
               context: "CoolPath / full verification",
               description: successful
-                ? "Typecheck, tests, lint, format, build, verify and E2E passed"
+                ? "Typecheck, tests, lint, format, build and E2E passed"
                 : `verify=${process.env.VERIFY_RESULT}, e2e=${process.env.E2E_RESULT}`,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });

@@ -29,10 +29,14 @@ export default tseslint.config(
     }
   },
   {
-    files: ["**/*.config.{js,ts,mjs}", "**/scripts/**/*.ts"],
+    files: ["**/*.config.{js,ts,mjs}", "**/scripts/**/*.{js,mjs,ts}"],
     rules: {
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off"
     }
+  },
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ["**/scripts/**/*.{js,mjs}"]
   }
 );

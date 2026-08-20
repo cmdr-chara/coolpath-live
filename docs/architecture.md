@@ -148,7 +148,7 @@ Timeline reads default to 50 newest events and reject payload growth above a har
 
 SQLite remains the intentional persistence boundary for the bounded deployment. WAL mode and foreign-key enforcement are enabled for every repository instance.
 
-`packages/db/migrations/*.sql` is the only authoritative schema definition. Repository initialization creates `_coolpath_migrations` and applies unapplied numbered migrations transactionally in lexical order. The initial migration uses idempotent table and index creation so a database created by the earlier inline-schema implementation can be adopted without deleting existing rows. Initializing the same database twice is safe.
+`packages/db/migrations/*.sql` is the only authoritative schema definition. Repository initialization creates `_coolpath_migrations` and applies unapplied numbered migrations transactionally in lexical order. The initial migration uses idempotent table and index creation so a database created by the earlier inline-schema implementation can be adopted without deleting existing rows. Because SQLite cannot add `CHECK` clauses to those already-existing tables in place, migration `0002_legacy_constraint_guards.sql` installs equivalent insert/update guards for the legacy schema. New databases retain the native `CHECK` clauses as well. Initializing the same database twice is safe.
 
 Future schema changes require a new numbered migration. Applied migration files must not be rewritten in deployed environments. The migration directory must ship alongside the compiled package because the runtime migrator resolves it directly from the package location.
 

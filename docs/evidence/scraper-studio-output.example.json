@@ -1,0 +1,55 @@
+{
+  "artifactType": "sanitized_scraper_studio_output_example",
+  "evidenceClassification": "live_captured_and_sanitized",
+  "capturedAt": "2026-08-20T12:49:57.057Z",
+  "collectorId": "c_msxe8lsm2630ya30wu",
+  "sourceId": "pa211-philadelphia-cooling",
+  "sourceTarget": {
+    "organization": "Pennsylvania 211",
+    "origin": "https://search.pa211.org",
+    "governmentWebsite": false,
+    "coverage": "bounded first page; not complete source coverage"
+  },
+  "mode": "real",
+  "schemaVersion": "1",
+  "fields": ["facility_name", "address", "service_text", "evidence_url"],
+  "sampleRecords": [
+    {
+      "facility_name": "Broad Street Ministry - Cooling Center",
+      "address": "315 South Broad Street, Philadelphia, PA 19107",
+      "service_text": "Serves as a cooling center during extreme heat emergencies (code reds).",
+      "evidence_url": "https://search.pa211.org/search/82ea1f2e-cea1-568f-a6ae-70a841dbcf13"
+    },
+    {
+      "facility_name": "Philadelphia Senior Centers - Cooling Center",
+      "address": "509 South Broad Street, Philadelphia, PA 19147",
+      "service_text": "Serves as a cooling center during extreme heat emergencies (code reds).",
+      "evidence_url": "https://search.pa211.org/search/1cbbbef5-42a3-5ad9-bed4-a630327872bc"
+    },
+    {
+      "facility_name": "Free Library of Philadelphia - Cooling Centers",
+      "address": "932 South 7th Street, Philadelphia, PA 19147",
+      "service_text": "Serves as a cooling center during extreme heat emergencies (code reds).",
+      "evidence_url": "https://search.pa211.org/search/3605f24a-6312-55d1-8806-e0a0149f22ea"
+    }
+  ],
+  "coverage": {
+    "providerRecordsReceived": 24,
+    "normalizedRecordsAccepted": 23,
+    "recordsFilteredNotLocations": 1,
+    "exactDuplicatesRemoved": 0,
+    "recordsRejectedBySourceValidation": 0,
+    "recordsRejectedByValidation": 0,
+    "recordsQuarantined": 0
+  },
+  "disposition": "publishable",
+  "reasonCodes": [],
+  "rawSha256": "15c27afa2814212ac2f026903b8aa7014f26d3a80b6ccc8d35b2e61fae44d797",
+  "sanitization": {
+    "fullProviderResponseCommitted": false,
+    "credentialsIncluded": false,
+    "authorizationHeaderIncluded": false,
+    "privateProviderMetadataIncluded": false,
+    "personalContactFieldsIncluded": false
+  }
+}

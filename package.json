@@ -21,8 +21,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "audit:prod": "pnpm audit --prod --audit-level high",
+    "verify:evidence": "node scripts/verify-submission-evidence.mjs",
     "typecheck": "tsc -b packages/domain packages/test-fixtures packages/source-adapters packages/db apps/api --pretty false && pnpm --filter @coolpath/web typecheck",
-    "verify": "pnpm lint && pnpm format && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm format && pnpm typecheck && pnpm test && pnpm build && pnpm verify:evidence"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

@@ -1,0 +1,88 @@
+{
+  "artifactType": "deterministic_drift_quarantine_recovery_evidence",
+  "evidenceClassification": "deterministic_fixture",
+  "controlledSimulation": true,
+  "fixtureSource": "packages/test-fixtures/src/index.ts",
+  "collectorId": "c_coolpath_demo_same_identity",
+  "sourceId": "demo-civic-cooling",
+  "baseline": {
+    "disposition": "publishable",
+    "publishedRecords": 3,
+    "coverage": {
+      "providerRecordsReceived": 3,
+      "normalizedRecordsAccepted": 3,
+      "recordsFilteredNotLocations": 0,
+      "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
+      "recordsRejectedByValidation": 0,
+      "recordsQuarantined": 0
+    }
+  },
+  "drift": {
+    "disposition": "quarantined",
+    "reasonCodes": [
+      "INVALID_SCHEMA",
+      "MISSING_NAME",
+      "MAJOR_YIELD_DROP",
+      "OPTIONAL_FIELD_LOSS",
+      "IDENTITY_REPLACEMENT"
+    ],
+    "coverage": {
+      "providerRecordsReceived": 1,
+      "normalizedRecordsAccepted": 1,
+      "recordsFilteredNotLocations": 0,
+      "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
+      "recordsRejectedByValidation": 1,
+      "recordsQuarantined": 0
+    },
+    "candidateSnapshotStatus": "quarantined",
+    "publishedRecordsRetained": 3,
+    "publicDirectoryConsumedInvalidCandidate": false
+  },
+  "healingPreview": {
+    "manualApprovalRequired": true,
+    "selectorDiff": [
+      {
+        "field": "name",
+        "before": ".cooling-card .name",
+        "after": ".place h3"
+      },
+      {
+        "field": "addressText",
+        "before": ".cooling-card .address",
+        "after": ".place address"
+      },
+      {
+        "field": "temporalClaim",
+        "before": ".cooling-card .hours",
+        "after": ".place dl dd"
+      }
+    ]
+  },
+  "rejectionBranch": {
+    "collectorChanged": false,
+    "rerunOccurred": false,
+    "publishedRecordsRetained": 3
+  },
+  "recovery": {
+    "disposition": "publishable",
+    "sourceState": "RECOVERED",
+    "sameCollectorId": true,
+    "publishedRecords": 3,
+    "coverage": {
+      "providerRecordsReceived": 3,
+      "normalizedRecordsAccepted": 3,
+      "recordsFilteredNotLocations": 0,
+      "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
+      "recordsRejectedByValidation": 0,
+      "recordsQuarantined": 0
+    }
+  },
+  "truthBoundary": {
+    "realProviderResponse": false,
+    "realWebsiteChange": false,
+    "purpose": "Repeatable demonstration of the same publication, quarantine, review, and recovery boundaries used by real mode."
+  }
+}
