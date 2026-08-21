@@ -14,8 +14,9 @@ This checklist tracks the artifacts required or strongly expected by the current
 - [ ] Final live rerun of the same Collector ID against the final submission commit.
 - [x] Working-tree real-mode API/database publication rehearsal recorded at `docs/evidence/live-api-publication.example.json`.
 - [x] Sanitized example structured output at `docs/evidence/scraper-studio-output.example.json`.
-- [ ] Final demo video showing the working project.
-- [ ] Add the final demo-video link to the README/submission form.
+- [x] Final demo video showing the working project.
+- [x] Add the final demo-video link to the README and submission copy.
+- [ ] Add the final demo-video link to the official submission form.
 - [ ] Final submission description and explicit Scraper Studio explanation copied into the form.
 - [ ] Submit while the official submission form is open.
 

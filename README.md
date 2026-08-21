@@ -23,6 +23,8 @@ Pennsylvania 211
 
 ## Run the demo
 
+**Watch the final demo:** [CoolPath Live — Evidence Before Availability](https://streamable.com/9suxbq)
+
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
