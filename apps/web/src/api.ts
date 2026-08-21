@@ -7,6 +7,7 @@ import type { CityResponse, CitySummary } from "./types";
 
 const baseUrl = String(import.meta.env.VITE_API_BASE_URL ?? "");
 const configuredCitySlug = String(import.meta.env.VITE_CITY_SLUG ?? "").trim();
+const staticDeployment = String(import.meta.env.VITE_STATIC_DEPLOYMENT ?? "") === "true";
 
 interface EnvelopeParser<T> {
   parse(value: unknown): { data: T };
@@ -52,13 +53,17 @@ async function request<T>(path: string, parser: EnvelopeParser<T>, init?: Reques
 }
 
 export async function getDirectory(): Promise<CityResponse> {
-  const cities: CitySummary[] = await request("/api/cities", apiCitySummaryListEnvelopeSchema);
+  const citiesPath = staticDeployment ? "/api/cities.json" : "/api/cities";
+  const cities: CitySummary[] = await request(citiesPath, apiCitySummaryListEnvelopeSchema);
   const selected = configuredCitySlug
     ? cities.find((city) => city.slug === configuredCitySlug)
     : (cities.find((city) => city.mode === "real") ?? cities[0]);
 
   if (!selected) throw new Error("No configured city is available.");
-  return request(`/api/cities/${encodeURIComponent(selected.slug)}`, apiCityResponseEnvelopeSchema);
+  const cityPath = staticDeployment
+    ? `/api/cities/${encodeURIComponent(selected.slug)}.json`
+    : `/api/cities/${encodeURIComponent(selected.slug)}`;
+  return request(cityPath, apiCityResponseEnvelopeSchema);
 }
 
 export function runDemoAction(action: "reset" | "drift" | "heal"): Promise<unknown> {

@@ -104,6 +104,7 @@ The collector reads a bounded first page. Historical verified runs observed 24 o
 ## Submission links
 
 - Repository: https://github.com/cmdr-chara/coolpath-live
+- Public deployment: https://cmdr-chara.github.io/coolpath-live/
 - Demo video: https://streamable.com/9suxbq
 - Structured output: `docs/evidence/scraper-studio-output.example.json`
 - Real healing evidence: `docs/evidence/healing-recovery.example.json`

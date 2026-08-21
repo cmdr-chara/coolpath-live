@@ -25,6 +25,13 @@ Pennsylvania 211
 
 **Watch the final demo:** [CoolPath Live — Evidence Before Availability](https://streamable.com/9suxbq)
 
+**Open the public deployment:** [cmdr-chara.github.io/coolpath-live](https://cmdr-chara.github.io/coolpath-live/)
+
+The GitHub Pages deployment is intentionally read-only. It serves a contract-validated historical
+public snapshot of 23 Pennsylvania 211 locations and labels it `STALE`; it never embeds credentials,
+runs operator mutations, or consumes Bright Data credits. The video and local mock workflow show the
+dynamic drift, quarantine, review, and recovery sequence. See [`docs/deployment.md`](docs/deployment.md).
+
 ```bash
 corepack enable
 pnpm install --frozen-lockfile

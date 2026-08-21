@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "philadelphia",
+      "slug": "philadelphia",
+      "displayName": "Philadelphia",
+      "region": "Pennsylvania",
+      "timezone": "America/New_York",
+      "sourceStatus": "STALE",
+      "lastVerified": "2026-08-20T14:04:49.446Z",
+      "lastVerifiedLocal": {
+        "instant": "2026-08-20T14:04:49.446Z",
+        "timeZone": "America/New_York",
+        "localIso": "2026-08-20T10:04:49-04:00",
+        "utcOffset": "-04:00"
+      },
+      "siteCount": 23,
+      "mode": "real"
+    }
+  ],
+  "meta": {
+    "generatedAt": "2026-08-21T19:15:27.429Z"
+  }
+}

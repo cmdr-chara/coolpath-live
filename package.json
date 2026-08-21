@@ -14,6 +14,8 @@
     "dev:web": "pnpm --filter @coolpath/web dev",
     "demo": "pnpm --filter @coolpath/api demo",
     "demo:reset": "pnpm --filter @coolpath/api demo:reset",
+    "deploy:export": "tsx scripts/export-deployment-snapshot.mjs",
+    "deploy:stage": "node scripts/stage-pages-api.mjs",
     "smoke:live": "pnpm --filter @coolpath/api smoke:live",
     "lint": "eslint .",
     "format": "prettier --check .",

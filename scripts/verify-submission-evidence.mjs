@@ -21,6 +21,8 @@ const requiredFiles = [
   "docs/evidence/scraper-studio-output.example.json",
   "docs/evidence/live-api-publication.example.json",
   "docs/evidence/live-api-publication-pre-final.example.json",
+  "docs/evidence/deployed-city-list.example.json",
+  "docs/evidence/deployed-public-read-model.example.json",
   "docs/evidence/healing-recovery.example.json",
   "docs/evidence/drift-quarantine.example.json"
 ];
@@ -311,6 +313,52 @@ if (preFinalPublication) {
     false
   );
   verifyCoverage(preFinalPublicationPath, preFinalPublication.operatorCheck?.coverage);
+}
+
+const deployedCitiesPath = "docs/evidence/deployed-city-list.example.json";
+const deployedCities = await readJson(deployedCitiesPath);
+if (deployedCities) {
+  verifyNoSecretValues(deployedCitiesPath, deployedCities);
+  verifyNoSensitivePayloadKeys(deployedCitiesPath, deployedCities);
+  const philadelphia = deployedCities.data?.find?.((city) => city.slug === "philadelphia");
+  expectEqual(`${deployedCitiesPath}.philadelphia.mode`, philadelphia?.mode, "real");
+  expectEqual(
+    `${deployedCitiesPath}.philadelphia.sourceStatus`,
+    philadelphia?.sourceStatus,
+    "STALE"
+  );
+}
+
+const deployedReadModelPath = "docs/evidence/deployed-public-read-model.example.json";
+const deployedReadModel = await readJson(deployedReadModelPath);
+if (deployedReadModel) {
+  verifyNoSecretValues(deployedReadModelPath, deployedReadModel);
+  verifyNoSensitivePayloadKeys(deployedReadModelPath, deployedReadModel);
+  expectEqual(
+    `${deployedReadModelPath}.data.city.slug`,
+    deployedReadModel.data?.city?.slug,
+    "philadelphia"
+  );
+  expectEqual(
+    `${deployedReadModelPath}.data.source.mode`,
+    deployedReadModel.data?.source?.mode,
+    "real"
+  );
+  expectEqual(
+    `${deployedReadModelPath}.data.source.status`,
+    deployedReadModel.data?.source?.status,
+    "STALE"
+  );
+  expectEqual(
+    `${deployedReadModelPath}.data.source.canonicalUrl`,
+    new URL(deployedReadModel.data?.source?.canonicalUrl).origin,
+    sourceOrigin
+  );
+  expectEqual(
+    `${deployedReadModelPath}.data.snapshot.sites.length`,
+    deployedReadModel.data?.snapshot?.sites?.length,
+    23
+  );
 }
 
 const healingPath = "docs/evidence/healing-recovery.example.json";

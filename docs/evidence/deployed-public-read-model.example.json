@@ -1,0 +1,422 @@
+{
+  "data": {
+    "city": {
+      "id": "philadelphia",
+      "slug": "philadelphia",
+      "displayName": "Philadelphia",
+      "region": "Pennsylvania",
+      "timezone": "America/New_York"
+    },
+    "source": {
+      "id": "pa211-philadelphia-cooling",
+      "agencyName": "Pennsylvania 211",
+      "canonicalUrl": "https://search.pa211.org/search?query=TH-2600.1900&query_label=Cooling%20Centers&query_type=taxonomy&location=Philadelphia%2C%20PA&coords=-75.1652%2C39.9526&distance=10",
+      "collectorId": "c_msxe8lsm2630ya30wu",
+      "freshnessTtlMinutes": 720,
+      "policyVersion": "2026-08-17-pa211",
+      "status": "STALE",
+      "mode": "real"
+    },
+    "snapshot": {
+      "id": "ec4c3e0c-aab9-4182-9d9e-652eea2f9938",
+      "sourceId": "pa211-philadelphia-cooling",
+      "runId": "6dfb0bc7-1dea-43e4-bfa6-328f073e6cc4",
+      "observedAt": "2026-08-20T14:04:49.446Z",
+      "observedAtLocal": {
+        "instant": "2026-08-20T14:04:49.446Z",
+        "timeZone": "America/New_York",
+        "localIso": "2026-08-20T10:04:49-04:00",
+        "utcOffset": "-04:00"
+      },
+      "sourceReportedUpdatedAt": null,
+      "contentHash": "b2ccc60f62e4998f2c8dfc8bd6ae29f92f6d8608dfe4a12be89ad94832d1a283",
+      "status": "published",
+      "promotedAt": "2026-08-20T14:04:49.452Z",
+      "sites": [
+        {
+          "id": "pa211:broad-street-ministry-cooling-center:597a923411",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Broad Street Ministry - Cooling Center",
+          "addressText": "315 South Broad Street, Philadelphia, PA 19107",
+          "evidenceUrl": "https://search.pa211.org/search/82ea1f2e-cea1-568f-a6ae-70a841dbcf13",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:philadelphia-senior-centers-cooling-center:14561180a0",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Philadelphia Senior Centers - Cooling Center",
+          "addressText": "509 South Broad Street, Philadelphia, PA 19147",
+          "evidenceUrl": "https://search.pa211.org/search/1cbbbef5-42a3-5ad9-bed4-a630327872bc",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:8cd25b091d",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "932 South 7th Street, Philadelphia, PA 19147",
+          "evidenceUrl": "https://search.pa211.org/search/3605f24a-6312-55d1-8806-e0a0149f22ea",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:city-of-philadelphia-extreme-heat-cooling-programs:ccbec06339",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "City of Philadelphia - Extreme Heat Cooling Programs",
+          "addressText": "240 Spring Garden Street, Philadelphia, PA 19123",
+          "evidenceUrl": "https://search.pa211.org/search/cb08bcb6-3ff4-51e7-966e-640bf359241f",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Offers a web-based map in which air-conditioned spaces available for public use are displayed. Cooling centers include public libraries, city recreation centers, and city older adults centers (senior centers)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:philadelphia-senior-centers-cooling-center:28ca30e232",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Philadelphia Senior Centers - Cooling Center",
+          "addressText": "1430 East Passyunk Avenue, Philadelphia, PA 19147",
+          "evidenceUrl": "https://search.pa211.org/search/62555b86-b077-50a9-a914-416aa9518723",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:phildadelphia-recreation-centers-cooling-center:0b334169ae",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Phildadelphia Recreation Centers - Cooling Center",
+          "addressText": "1025 Mifflin Street, Philadelphia, PA 19148",
+          "evidenceUrl": "https://search.pa211.org/search/05416e7b-41f9-5fdf-a8ac-501a331fce34",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:ca5f1b5914",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "2320 West Cecil B. Moore Avenue, Philadelphia, PA 19121",
+          "evidenceUrl": "https://search.pa211.org/search/2584c6a1-3c09-58b5-9c9d-f26aa87f8684",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:phildadelphia-recreation-centers-cooling-center:7c6c4cd613",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Phildadelphia Recreation Centers - Cooling Center",
+          "addressText": "2101 Cecil B. Moore Avenue, Philadelphia, PA 19121",
+          "evidenceUrl": "https://search.pa211.org/search/45bf4802-1bed-5424-a20c-3d462ca1b277",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:e3d4b7f5a2",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "201 South 40th Street, Philadelphia, PA 19104",
+          "evidenceUrl": "https://search.pa211.org/search/3f4b9d71-8111-5ac6-9140-822a5912232e",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:phildadelphia-recreation-centers-cooling-center:24c9a33d22",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Phildadelphia Recreation Centers - Cooling Center",
+          "addressText": "2100 South 24th Street, Philadelphia, PA 19145",
+          "evidenceUrl": "https://search.pa211.org/search/44430e6e-4c5a-5f8a-a0c7-608753c43374",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:philadelphia-senior-centers-cooling-center:b8c562b6fe",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Philadelphia Senior Centers - Cooling Center",
+          "addressText": "5331-41 Haverford Avenue, Philadelphia, PA 19139",
+          "evidenceUrl": "https://search.pa211.org/search/7388a9c0-eda1-5ed5-b042-20c0830bb91a",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:one-day-at-a-time-cooling-center:60d24578c0",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "One Day At A Time - Cooling Center",
+          "addressText": "2432 West Lehigh Avenue, Philadelphia, PA 19132",
+          "evidenceUrl": "https://search.pa211.org/search/3f79076a-4810-5e10-8126-76a69b78545e",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:sister-clara-muhammad-cooling-center:a1371771d2",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Sister Clara Muhammad - Cooling Center",
+          "addressText": "4700 Wyalusing Avenue, Philadelphia, PA 19131",
+          "evidenceUrl": "https://search.pa211.org/search/7c4e2fb5-0cd3-5cc2-b400-ad82edf3b30c",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:87ed523928",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "601 West Lehigh Avenue, Philadelphia, PA 19133",
+          "evidenceUrl": "https://search.pa211.org/search/74d1c3ae-350f-57ec-85db-85a4e53a31a4",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:4296fd4663",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "2808 West Lehigh Avenue, Philadelphia, PA 19132",
+          "evidenceUrl": "https://search.pa211.org/search/b77c484c-2b2b-5e5b-a6b4-a896e16348af",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:6cbc6cfa37",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "125 South 52nd Street, Philadelphia, PA 19139",
+          "evidenceUrl": "https://search.pa211.org/search/090a0926-4f71-54a9-9b99-9fe498234d94",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:philadelphia-senior-centers-cooling-center:d483125459",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Philadelphia Senior Centers - Cooling Center",
+          "addressText": "1900 West Allegheny Avenue, Philadelphia, PA 19132",
+          "evidenceUrl": "https://search.pa211.org/search/af45924e-0e21-551a-a754-98c8552db8c0",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:phildadelphia-recreation-centers-cooling-center:6421c9003d",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Phildadelphia Recreation Centers - Cooling Center",
+          "addressText": "728 South 55th Street, Philadelphia, PA 19143",
+          "evidenceUrl": "https://search.pa211.org/search/3981b68e-6918-5d15-8846-54657e1582d2",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:548d37d087",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "5543 Haverford Avenue, Philadelphia, PA 19139",
+          "evidenceUrl": "https://search.pa211.org/search/d3fc67d5-9a3d-5bcf-94c3-2bb97cde9596",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:phildadelphia-recreation-centers-cooling-center:052b2815da",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Phildadelphia Recreation Centers - Cooling Center",
+          "addressText": "5835 Spruce Street, Philadelphia, PA 19139",
+          "evidenceUrl": "https://search.pa211.org/search/44d1b424-e0a5-5751-9309-a7ef9f98eeb8",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:philadelphia-senior-centers-cooling-center:631c587f94",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Philadelphia Senior Centers - Cooling Center",
+          "addressText": "1251 East Sedgley Avenue, Philadelphia, PA 19134",
+          "evidenceUrl": "https://search.pa211.org/search/55e4ea3c-4c30-5981-a8f0-7e0242b77d76",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:cd5a6dc8a5",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "1333 Wagner Avenue, Philadelphia, PA 19141",
+          "evidenceUrl": "https://search.pa211.org/search/ffcf8aef-39e0-5e5c-8c0c-41802c0879b7",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        },
+        {
+          "id": "pa211:free-library-of-philadelphia-cooling-centers:a135ec8ab9",
+          "cityId": "philadelphia",
+          "sourceKey": "pa211-philadelphia-cooling",
+          "name": "Free Library of Philadelphia - Cooling Centers",
+          "addressText": "68 West Chelten Avenue, Philadelphia, PA 19144",
+          "evidenceUrl": "https://search.pa211.org/search/1e4e2d1b-aaf2-50f2-a1a3-48ccb87b94c5",
+          "temporalClaim": {
+            "kind": "source_text",
+            "text": "Serves as a cooling center during extreme heat emergencies (code reds)."
+          },
+          "explicitClaims": [],
+          "observedAt": "2026-08-20T14:04:49.446Z"
+        }
+      ]
+    },
+    "latestRun": {
+      "id": "6dfb0bc7-1dea-43e4-bfa6-328f073e6cc4",
+      "sourceId": "pa211-philadelphia-cooling",
+      "startedAt": "2026-08-20T14:04:31.795Z",
+      "fetchedAt": "2026-08-20T14:04:49.446Z",
+      "completedAt": "2026-08-20T14:04:49.452Z",
+      "outcome": "publishable",
+      "collectorId": "c_msxe8lsm2630ya30wu",
+      "collectorVersion": "unknown",
+      "schemaVersion": "1",
+      "recordCount": 23,
+      "rawSha256": "15c27afa2814212ac2f026903b8aa7014f26d3a80b6ccc8d35b2e61fae44d797",
+      "reasonCodes": [],
+      "validationSummary": {
+        "disposition": "publishable",
+        "hardFailures": [],
+        "softAnomalies": [],
+        "recordCount": 23,
+        "requiredFieldCompleteness": 1,
+        "optionalClaimCoverage": 1,
+        "contentHash": "b2ccc60f62e4998f2c8dfc8bd6ae29f92f6d8608dfe4a12be89ad94832d1a283",
+        "coverage": {
+          "providerRecordsReceived": 24,
+          "normalizedRecordsAccepted": 23,
+          "recordsFilteredNotLocations": 1,
+          "exactDuplicatesRemoved": 0,
+          "recordsRejectedByValidation": 0,
+          "recordsQuarantined": 0
+        }
+      }
+    },
+    "incident": null,
+    "timeline": [
+      {
+        "id": "9452e78e-ea8e-4e47-aff9-dc158a754d5f",
+        "occurredAt": "2026-08-21T19:15:27.390Z",
+        "kind": "freshness_expired",
+        "title": "Trusted snapshot is now historical",
+        "detail": "The published snapshot observed at 2026-08-20T14:04:49.446Z exceeded its freshness TTL. It remains preserved as historical evidence.",
+        "tone": "warning"
+      },
+      {
+        "id": "a68698cf-fc0b-40fb-8e99-8f3f3c13ee1f",
+        "occurredAt": "2026-08-20T14:04:49.452Z",
+        "kind": "published",
+        "title": "Trusted snapshot published",
+        "detail": "23 records passed the complete contract suite.",
+        "tone": "positive"
+      },
+      {
+        "id": "30ea3eb2-ef55-49e7-adf3-c7b18c4ec6be",
+        "occurredAt": "2026-08-20T14:04:31.795Z",
+        "kind": "check_started",
+        "title": "Collector check started",
+        "detail": "Collector c_msxe8lsm2630ya30wu started in real mode.",
+        "tone": "neutral"
+      }
+    ]
+  },
+  "meta": {
+    "generatedAt": "2026-08-21T19:15:27.446Z"
+  }
+}

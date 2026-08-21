@@ -191,7 +191,11 @@ The two frontend views are URL-backed: the public directory is the default and t
 - A real Pennsylvania 211 Collector ID, Bright Data API token and operator token are intentionally not stored in the repository.
 - `AUTO_START_REAL_CHECK` must be enabled deliberately; the default avoids unexpected Bright Data credit use.
 - The per-source coordinator is process-local. A multi-replica deployment would require an external coordination design before enabling mutations on more than one replica.
-- Deployment configuration is environment-specific and is not included until a target platform is selected.
+- GitHub Pages hosts a read-only judging surface built from the shared API contracts. Its committed
+  public read model is a previously validated 23-record snapshot forced to `STALE`, so the static site
+  cannot imply live freshness. The deployment has no mutation surface, server credentials, SQLite
+  writer, or provider calls. The supported dynamic topology remains one Fastify writer process backed
+  by SQLite; see [deployment.md](deployment.md).
 - The deterministic fixture demonstrates layout drift at one synthetic URL; it is not Pennsylvania 211 or municipal source data.
 - The bounded Pennsylvania 211 first page is not complete source coverage and the application does not attempt undocumented pagination.
 - The current Bright Data client triggers a batch, polls `/dca/dataset` and accepts final JSON arrays or JSON Lines. Confirm the configured collector's field names during the manual live smoke check.
