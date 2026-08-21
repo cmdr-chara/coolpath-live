@@ -35,10 +35,10 @@ The event lists six equally weighted judging criteria. The timestamps below targ
 
 ### SPIDER-SENSE: Best Clean Code
 
-A new engineer can start in mock mode without credentials, trace each trust boundary by package, run one verification command, reproduce provider behavior from an explicit runbook, understand which operations consume credits, identify where secrets belong, and see the remaining manual external gate.
+A new engineer can start in mock mode without credentials, trace each trust boundary by package, run one verification command, reproduce provider behavior from an explicit runbook, understand which operations consume credits, identify where secrets belong, and inspect the tagged clean-candidate provider proof.
 
-## Known incomplete evidence
+## Evidence boundary
 
-The real Self-Healing operation and post-heal structured output are verified. The integrated API publication rehearsal is also verified, but it was captured from a dirty pre-final working tree and is labelled `exactFinalCommit: false`. One bounded real operator check against the exact clean final submission commit remains required before claiming exact-final-commit live publication.
+The real Self-Healing operation and post-heal structured output are verified. A later bounded integrated API publication check ran from clean tagged candidate `bfbf77d`, used the same Collector ID exactly once, and produced a 23-location healthy trusted snapshot with no active incident. Its canonical artifact is `docs/evidence/live-api-publication.example.json`; the earlier dirty-worktree rehearsal is retained separately for provenance.
 
 The submission form and any video-duration limit were not publicly available when these sources were retrieved on August 20, 2026. The repository therefore provides a concise three-minute master script rather than inventing a rule.

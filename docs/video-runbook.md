@@ -200,4 +200,4 @@ Use this fallback whenever provider latency, authentication, credits, or dashboa
 - [ ] No token, bearer value, cookie, `.env`, shell history, billing detail, or account identity is visible.
 - [ ] No raw rejected record or unnecessary provider payload is opened.
 - [ ] Public data is not described as complete coverage or real-time availability.
-- [ ] The exact-final-commit live API run is not claimed unless its artifact says `exactFinalCommit: true`.
+- [x] The exact-final-code-candidate live API run is claimed only by the artifact that records `exactFinalCommit: true`.

@@ -66,7 +66,7 @@ Sanitized real evidence from August 20, 2026 records:
 - a publishable post-heal rerun with 24 provider rows and 23 accepted locations;
 - one integrated real-mode API publication rehearsal.
 
-The integrated rehearsal is truthfully labelled `exactFinalCommit: false` because it ran from a dirty pre-final working tree. One bounded real operator check against the exact clean final submission commit remains an external submission gate.
+On August 21, 2026, one bounded real operator check ran from clean candidate `bfbf77df80c5c68cedfe4c206e4714d2381562df`, tagged `submission-live-verified-2026-08-21`. The same Collector ID returned 24 provider rows; CoolPath accepted and published 23 locations, filtered one non-location, reached `HEALTHY`, and had no active incident. The canonical artifact records `workingTreeClean: true` and `exactFinalCommit: true`; the later evidence-only commit does not change the verified application tree.
 
 Evidence index: [`docs/evidence/bright-data.md`](docs/evidence/bright-data.md).
 

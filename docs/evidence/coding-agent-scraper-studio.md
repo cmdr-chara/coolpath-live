@@ -33,16 +33,13 @@ The implemented workflow is:
 
 If Bright Data requests another approval after an approval decision, CoolPath remains `REVIEW_PENDING`; it does not rerun or publish.
 
-## What this ledger does not prove
+## What this ledger proves separately from the final live record
 
-No Bright Data credential is stored in the repository or available to deterministic CI. This hardening pass therefore does **not** claim:
+No Bright Data credential is stored in the repository or available to deterministic CI. This ledger proves the code and operating contract, while `docs/evidence/bright-data.md` and the machine-readable artifacts record the separately authorized live operations. The repository does not claim:
 
-- that the final submission commit has already completed a paid real collection;
-- that a real Self-Healing job was triggered during this pass;
-- that the final real structured-output artifact has already been captured;
 - that a coding agent independently approved a production repair.
 
-Those claims require a deliberate authenticated run against the exact final commit. `docs/evidence/bright-data.md` remains the authority for that final provider evidence.
+The August 21 clean-candidate check was deliberately authenticated and performed only after the final candidate was frozen. The human approved the earlier production repair; the agent did not assume or manufacture that decision. `docs/evidence/bright-data.md` remains the authority for final provider evidence.
 
 ## Safety rule
 

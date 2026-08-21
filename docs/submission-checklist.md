@@ -11,7 +11,7 @@ This checklist tracks the artifacts required or strongly expected by the current
 - [x] Only publicly available source data is used by the production adapter.
 - [x] AI-assisted development is disclosed in `AI_USAGE.md`.
 - [x] Coding-agent Scraper Studio operating contract/evidence is documented without pretending it is a live provider run.
-- [ ] Final live rerun of the same Collector ID against the final submission commit.
+- [x] Final live rerun of the same Collector ID against clean tagged candidate `bfbf77d`.
 - [x] Working-tree real-mode API/database publication rehearsal recorded at `docs/evidence/live-api-publication.example.json`.
 - [x] Sanitized example structured output at `docs/evidence/scraper-studio-output.example.json`.
 - [x] Final demo video showing the working project.

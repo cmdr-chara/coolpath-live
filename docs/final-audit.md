@@ -1,6 +1,6 @@
 # CoolPath Live — final audit status
 
-Date: 2026-08-20
+Date: 2026-08-21
 
 ## Current hardening status
 
@@ -34,13 +34,15 @@ The current HEAD must pass the canonical GitHub Actions verification gate before
 - Playwright E2E;
 - aggregate `CoolPath / full verification` status.
 
-## External evidence still required
+## External provider evidence
 
-Code hardening cannot manufacture provider evidence. A real sanitized structured-output artifact, genuine Self-Healing evidence and a complete real-mode API/database publication rehearsal were captured on 2026-08-20. The rehearsal proved the transition from `not_ready`/`UNINITIALIZED` to a 23-site published snapshot, `ready`/`HEALTHY` and no active incident. Before final submission, the remaining external gate is:
+Code hardening cannot manufacture provider evidence. Real sanitized structured output, genuine Self-Healing evidence, and a complete real-mode API/database publication rehearsal were captured on August 20. The remaining clean-candidate gate was completed on August 21 against tagged commit `bfbf77df80c5c68cedfe4c206e4714d2381562df`:
 
-1. run the exact final commit against Bright Data using `c_msxe8lsm2630ya30wu`;
-2. record the sanitized provider/normalization/validation result in `docs/evidence/bright-data.md`;
-3. inspect `/readyz` and the published city response to prove the API/database publication path;
-4. rerun deterministic verification after the final evidence update.
+1. the detached worktree was clean and pinned to the tagged candidate;
+2. exactly one authenticated operator check used `c_msxe8lsm2630ya30wu`;
+3. 24 provider rows became 23 accepted and published locations, with one non-location filtered;
+4. `/readyz` transitioned from `503 not_ready` to `200 ready`;
+5. the source became `HEALTHY`, the published snapshot referenced the proving run, and no incident remained active;
+6. credentials, authorization headers, raw provider records, and private provider metadata were excluded from the artifact.
 
-The structured example at `docs/evidence/scraper-studio-output.example.json` records three public rows from the real post-heal collector output plus aggregate metrics and the full-response hash. The API publication record at `docs/evidence/live-api-publication.example.json` captures the sanitized operator run, readiness transition and published snapshot while explicitly marking that its working tree was not the final frozen commit. The healing evidence in `docs/evidence/bright-data.md` records the rejected unsafe preview, approved corrected preview, provider completion and publishable same-collector rerun without exposing credentials.
+The structured example at `docs/evidence/scraper-studio-output.example.json` records three public rows from the real post-heal collector output plus aggregate metrics and the full-response hash. The canonical `docs/evidence/live-api-publication.example.json` records the final clean-candidate check. The earlier dirty-worktree rehearsal remains at `docs/evidence/live-api-publication-pre-final.example.json`. The healing ledger records the rejected unsafe preview, approved corrected preview, provider completion, and publishable same-collector rerun without exposing credentials.

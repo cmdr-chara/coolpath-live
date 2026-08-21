@@ -1,12 +1,11 @@
 {
-  "artifactType": "sanitized_final_live_api_publication_verification",
+  "artifactType": "sanitized_live_api_publication_verification",
   "evidenceClassification": "live_captured_and_sanitized",
-  "verifiedAt": "2026-08-21T18:41:48.866Z",
+  "verifiedAt": "2026-08-20T12:55:40.296Z",
   "candidate": {
-    "gitHead": "bfbf77df80c5c68cedfe4c206e4714d2381562df",
-    "gitTree": "d0a664b6e6dd1cb8bba89b49656ba7f3b889c82a",
-    "workingTreeClean": true,
-    "exactFinalCommit": true
+    "gitHead": "926c8f1d99b1a7d621f3b6ef5fef0e5780e0df02",
+    "workingTreeClean": false,
+    "exactFinalCommit": false
   },
   "environment": {
     "mode": "real",
@@ -28,7 +27,7 @@
   },
   "operatorCheck": {
     "httpStatus": 200,
-    "runId": "b496bbee-8629-4260-bd8a-b0e0614c267b",
+    "runId": "f217d82c-8858-4972-88bc-7c752ea5f5b4",
     "collectorId": "c_msxe8lsm2630ya30wu",
     "sourceId": "pa211-philadelphia-cooling",
     "disposition": "publishable",
@@ -39,6 +38,7 @@
       "normalizedRecordsAccepted": 23,
       "recordsFilteredNotLocations": 1,
       "exactDuplicatesRemoved": 0,
+      "recordsRejectedBySourceValidation": 0,
       "recordsRejectedByValidation": 0,
       "recordsQuarantined": 0
     }
@@ -53,17 +53,18 @@
     },
     "citySlug": "philadelphia",
     "sourceState": "HEALTHY",
-    "snapshotId": "6b127fe6-46d2-4b31-b155-7fca5ddcbfb8",
+    "snapshotId": "ce336fb4-ba34-4579-ad0d-be9abf24dc55",
     "snapshotStatus": "published",
-    "snapshotRunId": "b496bbee-8629-4260-bd8a-b0e0614c267b",
+    "snapshotRunId": "f217d82c-8858-4972-88bc-7c752ea5f5b4",
     "publishedSiteCount": 23,
     "latestRunOutcome": "publishable",
-    "latestRunRawSha256": "abf7e4f586aec383fa4f70cc2ccd78409a6e35f8e4c5e3d8a2cfbe75807c65c9",
+    "latestRunRawSha256": "15c27afa2814212ac2f026903b8aa7014f26d3a80b6ccc8d35b2e61fae44d797",
     "activeIncident": false,
     "timelineEventCount": 2
   },
   "shutdown": {
-    "signal": "SIGTERM",
+    "signal": "SIGINT",
+    "apiPortStillListening": false,
     "persistentDatabaseArtifactCreated": false
   },
   "sanitization": {

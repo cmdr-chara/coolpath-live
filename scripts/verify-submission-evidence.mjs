@@ -20,6 +20,7 @@ const requiredFiles = [
   "docs/evidence/bright-data.md",
   "docs/evidence/scraper-studio-output.example.json",
   "docs/evidence/live-api-publication.example.json",
+  "docs/evidence/live-api-publication-pre-final.example.json",
   "docs/evidence/healing-recovery.example.json",
   "docs/evidence/drift-quarantine.example.json"
 ];
@@ -239,15 +240,39 @@ if (publication) {
   );
   expectEqual(
     `${publicationPath}.candidate.exactFinalCommit`,
-    typeof publication.candidate?.exactFinalCommit,
-    "boolean"
+    publication.candidate?.exactFinalCommit,
+    true
   );
-  if (
-    publication.candidate?.exactFinalCommit === true &&
-    publication.candidate?.workingTreeClean !== true
-  ) {
-    fail(`${publicationPath}: exact-final-commit evidence must come from a clean worktree`);
-  }
+  expectEqual(
+    `${publicationPath}.candidate.workingTreeClean`,
+    publication.candidate?.workingTreeClean,
+    true
+  );
+  expectEqual(
+    `${publicationPath}.environment.operatorCheckProviderCalls`,
+    publication.environment?.operatorCheckProviderCalls,
+    1
+  );
+  expectEqual(
+    `${publicationPath}.operatorCheck.disposition`,
+    publication.operatorCheck?.disposition,
+    "publishable"
+  );
+  expectEqual(
+    `${publicationPath}.afterCollection.readinessStatus`,
+    publication.afterCollection?.readinessStatus,
+    "ready"
+  );
+  expectEqual(
+    `${publicationPath}.afterCollection.sourceState`,
+    publication.afterCollection?.sourceState,
+    "HEALTHY"
+  );
+  expectEqual(
+    `${publicationPath}.afterCollection.snapshotRunId`,
+    publication.afterCollection?.snapshotRunId,
+    publication.operatorCheck?.runId
+  );
   verifyCoverage(publicationPath, publication.operatorCheck?.coverage);
   expectNonNegativeInteger(
     `${publicationPath}.afterCollection.publishedSiteCount`,
@@ -264,6 +289,28 @@ if (publication) {
   ) {
     fail(`${publicationPath}: published count exceeds normalized accepted count`);
   }
+}
+
+const preFinalPublicationPath = "docs/evidence/live-api-publication-pre-final.example.json";
+const preFinalPublication = await readJson(preFinalPublicationPath);
+if (preFinalPublication) {
+  verifyArtifactSafety(preFinalPublicationPath, preFinalPublication);
+  expectEqual(
+    `${preFinalPublicationPath}.operatorCheck.collectorId`,
+    preFinalPublication.operatorCheck?.collectorId,
+    collectorId
+  );
+  expectEqual(
+    `${preFinalPublicationPath}.candidate.workingTreeClean`,
+    preFinalPublication.candidate?.workingTreeClean,
+    false
+  );
+  expectEqual(
+    `${preFinalPublicationPath}.candidate.exactFinalCommit`,
+    preFinalPublication.candidate?.exactFinalCommit,
+    false
+  );
+  verifyCoverage(preFinalPublicationPath, preFinalPublication.operatorCheck?.coverage);
 }
 
 const healingPath = "docs/evidence/healing-recovery.example.json";

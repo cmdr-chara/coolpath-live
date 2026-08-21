@@ -1,8 +1,8 @@
 # CoolPath Live submission copy
 
-Prepared: 2026-08-20
+Prepared: 2026-08-21
 
-The copy below distinguishes verified provider evidence, deterministic fixture behavior, and the one remaining exact-final-commit live gate. Replace only the bracketed repository and video placeholders before submission.
+The copy below distinguishes verified provider evidence from deterministic fixture behavior. Repository and video links are ready to paste into the submission form.
 
 ## 50-word pitch
 
@@ -27,7 +27,7 @@ The repository contains two deliberately separate forms of evidence:
 - Live captured and sanitized Bright Data evidence from August 20, 2026, including a real Self-Healing flow. The first preview was rejected because it moved results to the Spanish path; the corrected preview was approved, completed on the same Collector ID, and produced a publishable 24-provider-row to 23-location result.
 - A deterministic controlled-drift fixture used by tests and the presenter UI. It makes quarantine, rejection, approval, and recovery repeatable without claiming a real website changed on command or spending provider credits.
 
-The remaining external gate is one deliberate integrated API publication run against the exact final submission commit. The repository records the prior real API rehearsal as `exactFinalCommit: false` rather than presenting it as stronger evidence than it is.
+On August 21, 2026, one deliberate integrated API publication run executed from clean tagged candidate `bfbf77d` using the same Collector ID. It returned 24 provider rows, accepted and published 23 locations, filtered one non-location, reached `HEALTHY`, and left no active incident. The committed canonical artifact records the exact verified commit and tree; the earlier dirty-worktree rehearsal remains preserved separately rather than being overwritten.
 
 ## Best Use of Bright Data
 

@@ -244,7 +244,7 @@ These do not consume Bright Data credits:
 | API is live but readiness is `503`                  | Expected before a trusted snapshot exists in real mode. Liveness and readiness are intentionally distinct. |
 | Candidate is quarantined                            | Inspect reason codes and retain the current published snapshot. Do not force publication.                  |
 
-## Existing evidence and remaining external step
+## Existing evidence and completed final gate
 
 The repository already contains sanitized evidence of:
 
@@ -256,4 +256,6 @@ The repository already contains sanitized evidence of:
 - a publishable post-heal rerun;
 - one integrated real-mode API publication rehearsal from a dirty pre-final working tree.
 
-The remaining external gate is one bounded integrated API publication run against the exact final submission commit. Update `docs/evidence/live-api-publication.example.json` only with a new sanitized artifact that states `workingTreeClean: true` and `exactFinalCommit: true`. Do not overwrite historical evidence merely to make the claim look complete.
+The final external gate was completed on August 21, 2026 from clean tagged candidate `bfbf77df80c5c68cedfe4c206e4714d2381562df`. Exactly one integrated operator check reused `c_msxe8lsm2630ya30wu`, returned 24 provider rows, accepted and published 23 locations, filtered one non-location, reached `HEALTHY`, and left no active incident.
+
+The canonical sanitized artifact is `docs/evidence/live-api-publication.example.json`. The earlier dirty-worktree rehearsal remains preserved as `docs/evidence/live-api-publication-pre-final.example.json`; it was not rewritten to appear stronger than it was.
